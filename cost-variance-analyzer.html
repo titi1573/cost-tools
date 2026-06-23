@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成本差异分析器 | 标准成本 vs 实际成本 | 一键导出Excel</title>
+<meta name="description" content="成本会计工具：粘贴标准成本与实际成本，自动计算价格差异、用量差异、总差异。支持Excel粘贴、自动匹配品名、红标超预算、导出分析报告。">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--blue:#3b82f6;--blue-bg:#eff6ff;--red:#ef4444;--red-bg:#fef2f2;--green:#16a34a;--green-bg:#f0fdf4;--amber:#d97706;--amber-bg:#fffbeb;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f1f5f9;color:var(--gray-900);line-height:1.6}
+.container{max-width:1280px;margin:0 auto;padding:20px}
+
+/* Hero */
+.hero{text-align:center;padding:32px 20px 24px;background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);border-radius:16px;color:#fff;margin-bottom:24px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-50%;right:-20%;width:400px;height:400px;background:rgba(255,255,255,.04);border-radius:50%}
+.hero h1{font-size:2rem;position:relative;z-index:1;letter-spacing:-.5px}
+.hero .hero-sub{font-size:1.05rem;opacity:.85;margin-top:8px;position:relative;z-index:1;max-width:600px;margin-left:auto;margin-right:auto}
+.hero .hero-badges{display:flex;gap:10px;justify-content:center;margin-top:16px;position:relative;z-index:1;flex-wrap:wrap}
+.hero-badge{background:rgba(255,255,255,.15);backdrop-filter:blur(4px);padding:6px 16px;border-radius:20px;font-size:.82rem;font-weight:500}
+
+/* Tab bar */
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:var(--gray-200);border-radius:10px;padding:4px}
+.tab{flex:1;padding:10px 16px;text-align:center;border-radius:8px;cursor:pointer;font-size:.88rem;font-weight:600;border:none;background:transparent;color:var(--gray-500);transition:all .15s}
+.tab.active{background:#fff;color:var(--gray-900);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Sections */
+.section{background:#fff;border-radius:14px;padding:24px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--gray-100)}
+.section h2{font-size:1.15rem;color:var(--gray-900);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section h2 .icon{font-size:1.3rem}
+.section h3{font-size:.95rem;color:var(--gray-700);margin-bottom:8px}
+
+/* Guide */
+.guide-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:768px){.guide-steps{grid-template-columns:1fr}}
+.guide-step{background:var(--gray-50);border-radius:10px;padding:16px;border:1px solid var(--gray-200);position:relative}
+.guide-step .step-num{position:absolute;top:-10px;left:-10px;width:28px;height:28px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700}
+.guide-step h4{font-size:.85rem;color:var(--gray-900);margin-bottom:4px}
+.guide-step p{font-size:.78rem;color:var(--gray-500);line-height:1.5}
+
+/* Cases */
+.case-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.case-cards{grid-template-columns:1fr}}
+.case-card{background:var(--gray-50);border-radius:10px;padding:14px;border:1px solid var(--gray-200);cursor:pointer;transition:all .15s}
+.case-card:hover{border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,.1)}
+.case-card h4{font-size:.88rem;color:var(--gray-900);margin-bottom:4px}
+.case-card .case-desc{font-size:.78rem;color:var(--gray-500);line-height:1.5;margin-bottom:6px}
+.case-card .case-tag{display:inline-block;padding:2px 8px;background:var(--blue-bg);color:var(--blue);border-radius:10px;font-size:.7rem;font-weight:600}
+
+/* Input */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}}
+textarea{width:100%;height:210px;font-family:"SF Mono","Cascadia Code",Consolas,monospace;font-size:.84rem;padding:14px;border:2px solid var(--gray-200);border-radius:10px;resize:vertical;transition:border-color .2s;line-height:1.8;background:var(--gray-50)}
+textarea:focus{outline:none;border-color:var(--blue);background:#fff}
+textarea::placeholder{color:var(--gray-300)}
+.label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.label-row label{font-weight:700;color:var(--gray-700);font-size:.9rem;display:flex;align-items:center;gap:6px}
+.label-row label .dot{width:8px;height:8px;border-radius:50%}
+.dot-std{background:var(--blue)}
+.dot-act{background:var(--amber)}
+.label-row .link{color:var(--blue);font-size:.8rem;cursor:pointer;text-decoration:underline;font-weight:500}
+.label-row .link:hover{color:#1d4ed8}
+.upload-btn{position:relative;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:var(--blue-bg);color:var(--blue);border:1px dashed var(--blue);border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600;transition:all .15s}
+.upload-btn:hover{background:#dbeafe;border-style:solid}
+.upload-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-ok{color:var(--green);font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+
+.format-hint{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;font-size:.8rem;color:#1e40af;margin-top:10px;display:flex;align-items:flex-start;gap:8px}
+.format-hint .hint-icon{font-size:1.2rem;flex-shrink:0}
+
+/* Buttons */
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{padding:10px 22px;border:none;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:#2563eb;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.3)}
+.btn-lg{padding:12px 32px;font-size:.95rem}
+.btn-outline{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}.btn-outline:hover{background:var(--blue-bg)}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{background:#15803d}
+.btn-ghost{background:var(--gray-100);color:var(--gray-700)}.btn-ghost:hover{background:var(--gray-200)}
+
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:20px}
+.summary-card{background:var(--gray-50);border-radius:10px;padding:16px;text-align:center;border-left:3px solid transparent;position:relative;overflow:hidden}
+.summary-card .value{font-size:1.45rem;font-weight:800;color:var(--gray-900);line-height:1.2}
+.summary-card .value.red{color:var(--red)}
+.summary-card .value.green{color:var(--green)}
+.summary-card .value.amber{color:var(--amber)}
+.summary-card .label{font-size:.78rem;color:var(--gray-500);margin-top:3px}
+.summary-card .sub{font-size:.72rem;color:var(--gray-400);margin-top:2px}
+.summary-card.danger{border-left-color:var(--red);background:var(--red-bg)}
+.summary-card.warn{border-left-color:var(--amber);background:var(--amber-bg)}
+.summary-card.good{border-left-color:var(--green);background:var(--green-bg)}
+.summary-card.info{border-left-color:var(--blue);background:var(--blue-bg)}
+
+/* Bar chart row */
+.bar-chart-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.bar-item{display:flex;align-items:center;gap:10px;font-size:.82rem}
+.bar-item .bar-name{width:120px;text-align:right;color:var(--gray-700);font-weight:500;flex-shrink:0}
+.bar-item .bar-track{flex:1;height:20px;background:var(--gray-100);border-radius:4px;overflow:hidden;position:relative}
+.bar-item .bar-fill{height:100%;border-radius:4px;transition:width .5s ease;position:relative;display:flex;align-items:center;padding-left:8px;font-size:.72rem;color:#fff;font-weight:600}
+.bar-item .bar-val{width:100px;font-weight:700;flex-shrink:0;font-size:.82rem}
+.bar-item .bar-val.red{color:var(--red)}
+.bar-item .bar-val.green{color:var(--green)}
+
+/* Severity */
+.severity-high{background:#fee2e2!important;border-left:3px solid #dc2626!important}
+.severity-mid{background:#fef3c7!important;border-left:3px solid #f59e0b!important}
+.severity-low{}
+.severity-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.severity-dot.high{background:#dc2626}
+.severity-dot.mid{background:#f59e0b}
+.severity-dot.low{background:#6b7280}
+
+/* Insight box */
+.insight-box{background:linear-gradient(135deg,#fef3c7,#fffbeb);border:1px solid #fde68a;border-radius:10px;padding:16px 20px;margin-bottom:16px}
+.insight-box h4{font-size:.88rem;color:#92400e;margin-bottom:6px}
+.insight-box p,.insight-box li{font-size:.82rem;color:#a16207;line-height:1.6}
+.insight-box ul{padding-left:18px;margin-top:4px}
+
+/* Table */
+.table-wrap{overflow-x:auto;max-height:520px;overflow-y:auto;border-radius:8px;border:1px solid var(--gray-200)}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--gray-200)}
+th{background:var(--gray-50);color:var(--gray-700);font-weight:700;font-size:.75rem;position:sticky;top:0;z-index:2}
+td:first-child,th:first-child{text-align:left;font-weight:600}
+tr:hover{background:var(--gray-50)}
+tr.over-budget td{color:#b91c1c}
+tr.over-budget{background:var(--red-bg)}
+.over-flag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:6px}
+.over-flag.warn{background:#fef3c7;color:#92400e}
+.over-flag.danger{background:#fee2e2;color:#b91c1c}
+
+/* Legend */
+.viz-legend{display:flex;gap:24px;font-size:.82rem;color:var(--gray-500);margin-top:14px;flex-wrap:wrap}
+.viz-legend span{display:flex;align-items:center;gap:6px}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+
+/* Footer */
+.footer{text-align:center;padding:24px;color:var(--gray-400);font-size:.78rem}
+
+/* Waterfall mini */
+.waterfall{display:flex;align-items:flex-end;gap:4px;height:120px;margin-bottom:12px;padding:0 4px}
+.wf-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.75rem}
+.wf-bar{width:100%;max-width:50px;border-radius:4px 4px 0 0;transition:height .4s ease}
+.wf-val{font-weight:700;font-size:.75rem}
+.wf-label{color:var(--gray-500);font-size:.7rem;text-align:center;line-height:1.3}
+
+.hidden{display:none!important}
+.collapse-toggle{cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--blue);font-size:.85rem;font-weight:600;user-select:none}
+.collapse-toggle:hover{color:#1d4ed8}
+.collapse-content{margin-top:12px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>成本差异分析器</h1>
+  <p class="hero-sub">粘贴标准成本 vs 实际成本 → 自动匹配品名 → 价格差异 & 用量差异一键计算 → 红标超预算 → 导出Excel报告</p>
+  <div class="hero-badges">
+    <span class="hero-badge">标准成本法</span>
+    <span class="hero-badge">价格差异 + 用量差异</span>
+    <span class="hero-badge">Excel粘贴即用</span>
+    <span class="hero-badge">免费 / 本地运行</span>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('analyze')">分析差异</button>
+  <button class="tab" onclick="switchTab('guide')">使用指南</button>
+  <button class="tab" onclick="switchTab('cases')">案例库</button>
+</div>
+
+<!-- ====== TAB: ANALYZE ====== -->
+<div id="tab-analyze" class="tab-content active">
+
+  <!-- QUICK GUIDE -->
+  <div class="guide-steps">
+    <div class="guide-step">
+      <span class="step-num">1</span>
+      <h4>粘贴标准成本（预算）</h4>
+      <p>从Excel直接复制。格式：品名 | 标准单价 | 标准用量 | 标准总成本</p>
+    </div>
+    <div class="guide-step">
+      <span class="step-num">2</span>
+      <h4>粘贴实际成本</h4>
+      <p>列顺序完全一致。品名自动匹配，顺序可以不同。</p>
+    </div>
+    <div class="guide-step">
+      <span class="step-num">3</span>
+      <h4>点分析 → 导出</h4>
+      <p>自动算价格差异+用量差异，红标超预算，一键下载Excel。</p>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="section">
+    <h2><span class="icon">数据输入</span></h2>
+    <div class="two-col">
+      <div>
+        <div class="label-row">
+          <label><span class="dot dot-std"></span>标准成本（预算 / 标准卡）</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadFile(this,'standardInput','stdOk')"> 上传Excel</label>
+            <span class="upload-ok hidden" id="stdOk"></span>
+            <a href="模板_成本差异分析表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:4px">下载模板</a>
+            <span class="link" onclick="fillExample('standard')">填入示例数据</span>
+          </div>
+        </div>
+        <textarea id="standardInput" placeholder="从Excel直接粘贴，每行一条。或点击上方「上传Excel」选择文件。
+
+列顺序：品名  标准单价  标准用量  标准总成本
+
+分隔符支持：Tab / 竖线| / 多空格 / 逗号"></textarea>
+      </div>
+      <div>
+        <div class="label-row">
+          <label><span class="dot dot-act"></span>实际成本（本月实际发生）</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadFile(this,'actualInput','actOk')"> 上传Excel</label>
+            <span class="upload-ok hidden" id="actOk">已加载</span>
+            <span class="link" onclick="fillExample('actual')">填入示例数据</span>
+          </div>
+        </div>
+        <textarea id="actualInput" placeholder="从Excel直接粘贴，格式同上。或点击上方「上传Excel」选择文件。
+
+品名和标准成本保持一致即可自动匹配，
+顺序可以不同。"></textarea>
+      </div>
+    </div>
+
+    <div class="format-hint">
+      <span class="hint-icon"></span>
+      <div><strong>支持的粘贴格式</strong>：Excel直接复制 ✓ | Tab分隔 ✓ | 竖线 | 分隔 ✓ | 逗号分隔 ✓ | 多空格分隔 ✓<br>金额支持：<code>25.00</code> <code>¥25</code> <code>25</code> <code>2,500.00</code></div>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-primary btn-lg" onclick="analyze()">分析差异</button>
+      <button class="btn btn-ghost" onclick="clearAll()">清空数据</button>
+      <button class="btn btn-outline" onclick="fillExample('both')">加载完整案例</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="resultSection" class="hidden">
+    <!-- Insight -->
+    <div class="insight-box hidden" id="insightBox"></div>
+
+    <!-- Summary -->
+    <div class="section">
+      <h2>汇总</h2>
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div class="waterfall" id="waterfallChart"></div>
+      <div class="viz-legend">
+        <span><span class="legend-dot" style="background:#3b82f6"></span> 标准成本</span>
+        <span><span class="legend-dot" style="background:#f59e0b"></span> 价格差异影响</span>
+        <span><span class="legend-dot" style="background:#8b5cf6"></span> 用量差异影响</span>
+        <span><span class="legend-dot" style="background:#ef4444"></span> 实际成本</span>
+      </div>
+    </div>
+
+    <!-- Variance bar chart -->
+    <div class="section">
+      <h2>按品名差异对比</h2>
+      <div class="bar-chart-row" id="barChart"></div>
+    </div>
+
+    <!-- Detail table -->
+    <div class="section">
+      <h2>明细表</h2>
+      <div class="table-wrap">
+        <table id="resultTable">
+          <thead>
+            <tr>
+              <th>品名</th><th>标准单价</th><th>实际单价</th>
+              <th>价格差异</th><th>差%</th>
+              <th>标准用量</th><th>实际用量</th>
+              <th>用量差异</th><th>差%</th>
+              <th>标准总成本</th><th>实际总成本</th>
+              <th>总差异</th><th>差%</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-success" onclick="exportExcel()">导出 Excel 报告</button>
+        <button class="btn btn-ghost" onclick="window.print()">打印</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TAB: GUIDE ====== -->
+<div id="tab-guide" class="tab-content">
+  <div class="section">
+    <h2>使用指南</h2>
+    <div style="display:grid;gap:16px">
+      <div style="background:var(--blue-bg);border-radius:10px;padding:20px">
+        <h3>什么是价格差异和用量差异？</h3>
+        <p style="font-size:.88rem;color:#1e40af;line-height:1.7">标准成本法中，总差异 = <strong>价格差异</strong> + <strong>用量差异</strong>（二因素法）。<br><br>
+        <strong>价格差异</strong> = (实际单价 − 标准单价) × 实际用量 — "采购价涨了还是跌了？"<br>
+        <strong>用量差异</strong> = (实际用量 − 标准用量) × 标准单价 — "比标准多用了还是少用了？"<br>
+        <strong>总差异</strong> = 实际总成本 − 标准总成本<br><br>
+        正值（红色）= 不利差异（超预算）；负值（绿色）= 有利差异（节省）</p>
+      </div>
+      <div style="background:var(--green-bg);border-radius:10px;padding:20px">
+        <h3>数据格式要求</h3>
+        <p style="font-size:.88rem;color:#166534;line-height:1.7">每行一个物料/成本项，至少4列：<br>
+        <strong>例：原材料A | 25.00 | 100 | 2500.00</strong><br>
+        列1=品名（自由文本，用于匹配） | 列2=单价 | 列3=用量（数量） | 列4=总成本<br><br>
+        支持直接粘贴Excel数据。标准成本和实际成本的<strong>品名一致即可自动匹配</strong>。</p>
+      </div>
+      <div style="background:var(--amber-bg);border-radius:10px;padding:20px">
+        <h3>关于数据隐私</h3>
+        <p style="font-size:.88rem;color:#92400e;line-height:1.7">本工具是<strong>纯前端HTML单文件</strong>。你的财务数据<strong>不经过任何服务器</strong>——全部计算在你浏览器本地完成。可离线使用，无需注册登录。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TAB: CASES ====== -->
+<div id="tab-cases" class="tab-content">
+  <div class="section">
+    <h2>加载案例数据（一键填入上方分析器）</h2>
+    <div class="case-cards">
+      <div class="case-card" onclick="loadCase(1);switchTab('analyze')">
+        <h4>案例一：电子元器件工厂</h4>
+        <p class="case-desc">5种电子元器件，原材料涨价导致价格差异不利，但工艺改进节省了用量。适合展示「价格涨但用量省」的典型场景。</p>
+        <span class="case-tag">价格差异主导</span>
+      </div>
+      <div class="case-card" onclick="loadCase(2);switchTab('analyze')">
+        <h4>案例二：服装制造车间</h4>
+        <p class="case-desc">面料+辅料+人工+费用共6项，多项超预算。适合练习差异原因分析——区分「采购问题」vs「生产问题」。</p>
+        <span class="case-tag">混合差异</span>
+      </div>
+      <div class="case-card" onclick="loadCase(3);switchTab('analyze')">
+        <h4>案例三：食品加工产线</h4>
+        <p class="case-desc">原料价格波动大+人工效率提升。典型「价格差不利但人工有利」场景，适合展示二因素分解的价值。</p>
+        <span class="case-tag">对冲差异</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">成本差异分析器 v2 · 纯前端 · 数据不上传 · 免费使用</div>
+</div>
+
+<script>
+// ===== 智能列名匹配引擎 =====
+const COL_ALIASES = {
+  name: ['品名','名称','物料名称','材料名称','产品名称','费用名称','项目','项目名称','科目','工序','工序名','步骤','物料','材料','产品','name','item','part','material','product','摘要','事项','用途','说明','描述'],
+  spec: ['规格','型号','规格型号','牌号','spec','model','type'],
+  qty: ['用量','数量','耗用','消耗量','单位用量','定额用量','实际用量','标准用量','qty','quantity','usage','count','件数','产量'],
+  unitPrice: ['单价','价格','标准单价','实际单价','采购单价','工资率','小时工资','费率','price','unit_price','rate','cost_per'],
+  amount: ['金额','总成本','总价','合计','标准总成本','实际总成本','成本','费用金额','总额','amount','total','cost','sum','报销金额','支出金额'],
+  laborHours: ['工时','人工工时','直接工时','标准工时','实际工时','小时','小时数','hours','labor_hours','man_hours','工作时间','机时'],
+  laborRate: ['工资率','小时工资','费率','标准工资率','实际工资率','rate','wage','hourly_rate'],
+  laborCost: ['人工成本','直接人工','人工费','工资','labor_cost','labor','man_cost','薪酬'],
+  date: ['日期','时间','发生日期','报销日期','记账日期','date','time','when','制单日期'],
+  qtyOut: ['产量','完工产量','产出','成品数','output','finished','产出量','完工数量'],
+  code: ['编码','物料编码','料号','产品编码','编号','code','part_no','item_no','pn','sku'],
+  dept: ['部门','领用部门','使用部门','成本中心','dept','department','center'],
+  person: ['领用人','经手人','报销人','申请人','员工','操作人','person','user','employee','by'],
+};
+
+function colMatchScore(header, candidate) {
+  const h = header.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
+  const c = candidate.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
+  if (h === c) return 100;
+  if (h.includes(c)) return 90;
+  if (c.includes(h)) return 85;
+  let maxLen = 0;
+  for (let i=0;i<h.length;i++) {
+    for (let j=i+1;j<=h.length;j++) {
+      if (c.includes(h.slice(i,j))) maxLen = Math.max(maxLen, j-i);
+    }
+  }
+  return maxLen >= 2 ? 50 + maxLen*5 : 0;
+}
+
+function smartMapColumns(headers) {
+  const mapping = {};
+  const fields = Object.keys(COL_ALIASES);
+  for (const field of fields) {
+    let bestIdx = -1, bestScore = 50;
+    for (let i=0;i<headers.length;i++) {
+      const hdr = String(headers[i]||'').trim();
+      if (!hdr) continue;
+      for (const alias of COL_ALIASES[field]) {
+        const score = colMatchScore(hdr, alias);
+        if (score > bestScore) { bestScore = score; bestIdx = i; }
+      }
+    }
+    if (bestIdx >= 0) mapping[field] = bestIdx;
+  }
+  return mapping;
+}
+
+function extractRow(row, mapping) {
+  const obj = {};
+  for (const [field, idx] of Object.entries(mapping)) {
+    obj[field] = (row[idx] !== undefined && row[idx] !== null) ? String(row[idx]).trim() : '';
+  }
+  return obj;
+}
+
+// ===== EXCEL UPLOAD =====
+function uploadFile(inputEl, targetId, okId) {
+  const file = inputEl.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const sheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      // Convert to tab-separated text (preserves all columns)
+      const csv = XLSX.utils.sheet_to_csv(ws, {FS:'\t', blankrows:false, strip:true});
+      document.getElementById(targetId).value = csv;
+
+      // Show success indicator
+      const okEl = document.getElementById(okId);
+      const rowCount = csv.split('\n').filter(l=>l.trim()).length;
+      okEl.textContent = `已加载 ${rowCount} 行`;
+      okEl.classList.remove('hidden');
+      setTimeout(() => okEl.classList.add('hidden'), 4000);
+
+      // Clear file input so same file can be re-uploaded
+      inputEl.value = '';
+    } catch(err) {
+      alert('文件读取失败：' + err.message + '\n\n请确认是 .xlsx / .xls / .csv 格式。');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ===== TAB =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active',
+      (tab==='analyze'&&i===0)||(tab==='guide'&&i===1)||(tab==='cases'&&i===2));
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// ===== CASES =====
+const CASES = {
+  1: {
+    standard: `芯片IC-A\t12.50\t500\t6250.00\n电容B-100μF\t0.85\t3000\t2550.00\nPCB板4层\t28.00\t200\t5600.00\n连接器TypeC\t3.20\t800\t2560.00\n散热片铝\t4.50\t400\t1800.00`,
+    actual:   `芯片IC-A\t14.20\t480\t6816.00\n电容B-100μF\t0.82\t3100\t2542.00\nPCB板4层\t28.00\t195\t5460.00\n连接器TypeC\t3.50\t780\t2730.00\n散热片铝\t4.30\t420\t1806.00`
+  },
+  2: {
+    standard: `纯棉面料\t35.00\t150\t5250.00\n涤纶里布\t12.00\t200\t2400.00\n纽扣套件\t1.50\t600\t900.00\n拉链YKK\t4.00\t300\t1200.00\n缝纫人工\t22.00\t80\t1760.00\n整烫包装\t8.00\t60\t480.00`,
+    actual:   `纯棉面料\t38.00\t145\t5510.00\n涤纶里布\t11.50\t215\t2472.50\n纽扣套件\t1.60\t580\t928.00\n拉链YKK\t3.80\t310\t1178.00\n缝纫人工\t24.00\t85\t2040.00\n整烫包装\t7.50\t65\t487.50`
+  },
+  3: {
+    standard: `面粉高筋\t4.20\t2000\t8400.00\n白糖精制\t6.80\t800\t5440.00\n食用油大豆\t12.00\t400\t4800.00\n包装袋\t0.60\t3000\t1800.00\n产线人工\t25.00\t160\t4000.00\n电费动力\t0.90\t500\t450.00`,
+    actual:   `面粉高筋\t4.50\t1950\t8775.00\n白糖精制\t7.20\t780\t5616.00\n食用油大豆\t11.50\t420\t4830.00\n包装袋\t0.58\t3100\t1798.00\n产线人工\t26.00\t150\t3900.00\n电费动力\t0.88\t520\t457.60`
+  }
+};
+
+function loadCase(n) {
+  const c = CASES[n];
+  document.getElementById('standardInput').value = c.standard;
+  document.getElementById('actualInput').value = c.actual;
+  document.getElementById('resultSection').classList.add('hidden');
+}
+
+// ===== PARSE =====
+function parseData(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const rows = [];
+  for (const line of lines) {
+    let cols = line.split('\t');
+    if (cols.length < 4) cols = line.split('|').map(c => c.trim());
+    if (cols.length < 4) cols = line.split(/ {2,}/);
+    if (cols.length < 4) cols = line.split(',');
+    if (cols.length < 4) continue;
+
+    const name = cols[0].trim();
+    const price = parseFloat(String(cols[1]).replace(/[¥￥,]/g,''));
+    const qty = parseFloat(String(cols[2]).replace(/,/g,''));
+    const total = parseFloat(String(cols[3]).replace(/[¥￥,]/g,''));
+    if (isNaN(price) || isNaN(qty) || isNaN(total) || !name) continue;
+    rows.push({ name, price, qty, total });
+  }
+  return rows;
+}
+
+function fillExample(type) {
+  const c = CASES[1];
+  if (type === 'standard') document.getElementById('standardInput').value = c.standard;
+  else if (type === 'actual') document.getElementById('actualInput').value = c.actual;
+  else { document.getElementById('standardInput').value = c.standard; document.getElementById('actualInput').value = c.actual; }
+  document.getElementById('resultSection').classList.add('hidden');
+}
+
+function clearAll() {
+  document.getElementById('standardInput').value = '';
+  document.getElementById('actualInput').value = '';
+  document.getElementById('resultSection').classList.add('hidden');
+}
+
+// ===== ANALYZE =====
+function analyze() {
+  const stdText = document.getElementById('standardInput').value;
+  const actText = document.getElementById('actualInput').value;
+  if (!stdText.trim() || !actText.trim()) { alert('请在左右两侧分别粘贴标准成本和实际成本数据。'); return; }
+
+  const stdData = parseData(stdText);
+  const actData = parseData(actText);
+  if (!stdData.length || !actData.length) { alert('未能解析数据。请确保每行至少4列：品名 | 单价 | 用量 | 总成本'); return; }
+
+  const stdMap = new Map(stdData.map(r => [r.name, r]));
+  const actMap = new Map(actData.map(r => [r.name, r]));
+  const allNames = new Set([...stdMap.keys(), ...actMap.keys()]);
+
+  const results = [];
+  for (const name of allNames) {
+    const s = stdMap.get(name); const a = actMap.get(name);
+    if (!s && !a) continue;
+    const sPrice = s ? s.price : 0, aPrice = a ? a.price : 0;
+    const sQty = s ? s.qty : 0, aQty = a ? a.qty : 0;
+    const sTotal = s ? s.total : 0, aTotal = a ? a.total : 0;
+
+    const priceVar = (aPrice - sPrice) * aQty;
+    const qtyVar = (aQty - sQty) * sPrice;
+    const priceVarPct = sPrice ? ((aPrice - sPrice) / sPrice * 100) : 0;
+    const qtyVarPct = sQty ? ((aQty - sQty) / sQty * 100) : 0;
+    const totalVar = aTotal - sTotal;
+    const totalVarPct = sTotal ? (totalVar / sTotal * 100) : 0;
+
+    // Severity
+    let severity = 'low';
+    if (Math.abs(totalVarPct) > 15) severity = 'high';
+    else if (Math.abs(totalVarPct) > 5) severity = 'mid';
+
+    results.push({ name, sPrice, aPrice, priceVar, priceVarPct, sQty, aQty, qtyVar, qtyVarPct,
+      sTotal, aTotal, totalVar, totalVarPct, overBudget: totalVar > 0, severity });
+  }
+
+  renderResults(results);
+  document.getElementById('resultSection').classList.remove('hidden');
+  document.getElementById('tab-analyze').scrollIntoView({behavior:'smooth'});
+}
+
+function renderResults(results) {
+  const totalStd = results.reduce((s,r) => s + r.sTotal, 0);
+  const totalAct = results.reduce((s,r) => s + r.aTotal, 0);
+  const totalVar = totalAct - totalStd;
+  const totalVarPct = totalStd ? (totalVar / totalStd * 100) : 0;
+  const overCount = results.filter(r => r.overBudget).length;
+  const priceVarTotal = results.reduce((s,r) => s + r.priceVar, 0);
+  const qtyVarTotal = results.reduce((s,r) => s + r.qtyVar, 0);
+
+  // --- Insight ---
+  const topOffender = [...results].sort((a,b) => Math.abs(b.totalVar) - Math.abs(a.totalVar))[0];
+  let insightHtml = '';
+  if (overCount > results.length / 2) {
+    insightHtml = `<strong>整体超预算</strong>：${overCount}/${results.length} 项超预算，合计超支 ¥${Math.abs(totalVar).toFixed(2)}。最大偏差来自「${topOffender.name}」（${topOffender.totalVar>0?'+':''}¥${topOffender.totalVar.toFixed(2)}）。`;
+    if (priceVarTotal > 0 && qtyVarTotal > 0) insightHtml += ' 价格和用量均不利——建议同时审查采购合同和生产消耗。';
+    else if (priceVarTotal > 0) insightHtml += ' 主要由采购价格上涨驱动——建议复核供应商报价。';
+    else insightHtml += ' 主要由用量超出标准驱动——建议排查生产工艺和损耗率。';
+  } else if (totalVar < 0) {
+    insightHtml = `<strong>总体节省</strong>：实际成本比预算低 ¥${Math.abs(totalVar).toFixed(2)} (${Math.abs(totalVarPct).toFixed(1)}%)。${results.filter(r=>r.totalVar<0).length}项节省，${overCount}项超支需关注。`;
+  } else {
+    insightHtml = `<strong>整体受控</strong>：总偏差仅 ${totalVarPct.toFixed(1)}%。${overCount} 项略超预算，建议针对性复核。`;
+  }
+  document.getElementById('insightBox').innerHTML = `<h4>分析摘要</h4><p>${insightHtml}</p>`;
+  document.getElementById('insightBox').classList.remove('hidden');
+
+  // --- Summary ---
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="summary-card info"><div class="value">¥${totalStd.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div><div class="label">标准总成本</div></div>
+    <div class="summary-card ${totalVar>0?'danger':'good'}"><div class="value ${totalVar>0?'red':'green'}">${totalVar>0?'+':''}¥${totalVar.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div><div class="label">总差异 (${totalVarPct>0?'+':''}${totalVarPct.toFixed(1)}%)</div><div class="sub">实际 ¥${totalAct.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div></div>
+    <div class="summary-card ${priceVarTotal>0?'warn':'good'}"><div class="value ${priceVarTotal>0?'amber':'green'}">${priceVarTotal>0?'+':''}¥${Math.abs(priceVarTotal).toLocaleString('zh-CN',{minimumFractionDigits:2})}</div><div class="label">价格差异合计</div><div class="sub">采购价格变动影响</div></div>
+    <div class="summary-card ${qtyVarTotal>0?'warn':'good'}"><div class="value ${qtyVarTotal>0?'amber':'green'}">${qtyVarTotal>0?'+':''}¥${Math.abs(qtyVarTotal).toLocaleString('zh-CN',{minimumFractionDigits:2})}</div><div class="label">用量差异合计</div><div class="sub">生产效率 / 损耗影响</div></div>
+    <div class="summary-card ${overCount>results.length/2?'danger':overCount>0?'warn':'good'}"><div class="value ${overCount>results.length/2?'red':overCount>0?'amber':'green'}">${overCount} / ${results.length}</div><div class="label">超预算项目数</div><div class="sub">${overCount?`最大偏差: ${topOffender.name}`:'全部在预算内'}</div></div>
+  `;
+
+  // --- Waterfall ---
+  const wfData = [
+    {label:'标准成本',val:totalStd,color:'#3b82f6'},
+    {label:'价格差异',val:totalStd+priceVarTotal,color:priceVarTotal>0?'#f59e0b':'#16a34a'},
+    {label:'用量差异',val:totalStd+priceVarTotal+qtyVarTotal,color:qtyVarTotal>0?'#8b5cf6':'#16a34a'},
+    {label:'实际成本',val:totalAct,color:totalVar>0?'#ef4444':'#16a34a'}
+  ];
+  const wfMax = Math.max(...wfData.map(d=>d.val)) * 1.15;
+  document.getElementById('waterfallChart').innerHTML = wfData.map((d,i) => {
+    const h = (d.val / wfMax * 100);
+    return `<div class="wf-col"><div class="wf-bar" style="height:${h}px;background:${d.color}"></div><div class="wf-val">¥${(d.val/1000).toFixed(1)}k</div><div class="wf-label">${d.label}</div></div>`;
+  }).join('');
+
+  // --- Bar chart ---
+  const maxAbs = Math.max(...results.map(r => Math.abs(r.totalVar)), 1);
+  document.getElementById('barChart').innerHTML = results.map(r => {
+    const pct = Math.abs(r.totalVar) / maxAbs * 100;
+    const isOver = r.totalVar > 0;
+    return `<div class="bar-item">
+      <span class="bar-name">${r.name}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${pct}%;background:${isOver?'#ef4444':'#16a34a'}">${Math.abs(r.totalVarPct).toFixed(0)}%</span></span>
+      <span class="bar-val ${isOver?'red':'green'}">${isOver?'+':''}¥${r.totalVar.toFixed(0)}</span>
+    </div>`;
+  }).join('');
+
+  // --- Table ---
+  document.getElementById('resultBody').innerHTML = results.map(r => {
+    const cls = r.severity==='high'?'severity-high':r.severity==='mid'?'severity-mid':'';
+    const flag = r.overBudget ? `<span class="over-flag ${r.severity==='high'?'danger':'warn'}">${r.severity==='high'?'严重超支':r.severity==='mid'?'注意':'略超'}</span>` : '';
+    const sevDot = r.overBudget ? `<span class="severity-dot ${r.severity==='high'?'high':'mid'}"></span>` : '';
+    return `<tr class="${cls}">
+      <td>${r.name} ${flag}</td>
+      <td>¥${r.sPrice.toFixed(2)}</td><td>¥${r.aPrice.toFixed(2)}</td>
+      <td style="color:${r.priceVar>0?'#dc2626':'#16a34a'}">${r.priceVar>0?'+':''}¥${r.priceVar.toFixed(2)}</td>
+      <td style="color:${r.priceVarPct>0?'#dc2626':'#16a34a'}">${r.priceVarPct>0?'+':''}${r.priceVarPct.toFixed(1)}%</td>
+      <td>${r.sQty.toFixed(0)}</td><td>${r.aQty.toFixed(0)}</td>
+      <td style="color:${r.qtyVar>0?'#dc2626':'#16a34a'}">${r.qtyVar>0?'+':''}¥${r.qtyVar.toFixed(2)}</td>
+      <td style="color:${r.qtyVarPct>0?'#dc2626':'#16a34a'}">${r.qtyVarPct>0?'+':''}${r.qtyVarPct.toFixed(1)}%</td>
+      <td>¥${r.sTotal.toFixed(2)}</td><td>¥${r.aTotal.toFixed(2)}</td>
+      <td style="color:${r.totalVar>0?'#dc2626':'#16a34a'};font-weight:700">${r.totalVar>0?'+':''}¥${r.totalVar.toFixed(2)}</td>
+      <td style="color:${r.totalVarPct>0?'#dc2626':'#16a34a'};font-weight:700">${r.totalVarPct>0?'+':''}${r.totalVarPct.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== EXPORT =====
+function exportExcel() {
+  const rows = document.querySelectorAll('#resultTable tbody tr');
+  if (!rows.length) { alert('没有数据可导出'); return; }
+  const data = [];
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    data.push({
+      '品名': cells[0].textContent.replace(/超预算|严重超支|注意|略超/g,'').trim(),
+      '标准单价': cells[1].textContent, '实际单价': cells[2].textContent,
+      '价格差异': cells[3].textContent, '价格差异%': cells[4].textContent,
+      '标准用量': cells[5].textContent, '实际用量': cells[6].textContent,
+      '用量差异': cells[7].textContent, '用量差异%': cells[8].textContent,
+      '标准总成本': cells[9].textContent, '实际总成本': cells[10].textContent,
+      '总差异': cells[11].textContent, '总差异%': cells[12].textContent,
+    });
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:14},{wch:10},{wch:10},{wch:10},{wch:8},{wch:10},{wch:10},{wch:10},{wch:8},{wch:12},{wch:12},{wch:12},{wch:8}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '成本差异分析');
+  XLSX.writeFile(wb, `成本差异分析_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+</script>
+</body>
+</html>

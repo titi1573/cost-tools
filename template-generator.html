@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>制造业成本核算模板生成器</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f1f5f9;color:#1a202c;line-height:1.7}
+.container{max-width:900px;margin:0 auto;padding:24px 20px}
+h1{font-size:1.6rem;color:#1e3a5f;margin-bottom:4px}
+.sub{color:#6b7280;font-size:.88rem;margin-bottom:24px}
+
+.card{background:#fff;border-radius:14px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid #e5e7eb}
+.card h2{font-size:1.05rem;color:#1e3a5f;margin-bottom:6px}
+.card p{font-size:.85rem;color:#6b7280;margin-bottom:14px}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px}
+@media(max-width:600px){.grid-2{grid-template-columns:1fr}}
+
+.col-preview{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:.78rem;color:#475569;max-height:260px;overflow-y:auto;white-space:pre;font-family:"SF Mono",Consolas,monospace;line-height:1.5}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 24px;border:none;border-radius:10px;font-size:.9rem;cursor:pointer;font-weight:700;transition:all .15s}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8;box-shadow:0 4px 14px rgba(37,99,235,.3)}
+.btn-success{background:#16a34a;color:#fff}.btn-success:hover{background:#15803d}
+.btn-outline{background:#fff;color:#2563eb;border:1.5px solid #2563eb}.btn-outline:hover{background:#eff6ff}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:700}
+.tag-blue{background:#dbeafe;color:#1e40af}
+.tag-green{background:#dcfce7;color:#166534}
+.tag-amber{background:#fef3c7;color:#92400e}
+
+.preview-table{width:100%;font-size:.75rem;border-collapse:collapse;margin-top:8px}
+.preview-table th{background:#f1f5f9;padding:6px 8px;text-align:left;font-weight:700;border:1px solid #e2e8f0}
+.preview-table td{padding:5px 8px;border:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>制造业成本核算 Excel 模板</h1>
+  <p class="sub">一键生成 .xlsx 模板，直接上传到生产成本核算系统</p>
+
+  <!-- TEMPLATE 1: 分步法 -->
+  <div class="card">
+    <h2>模板一：分步法材料领用表 <span class="tag tag-blue">生产成本核算系统·分步法Tab</span></h2>
+    <p>传统制造企业按工序领料的实际格式。包含物料编码、规格、领用部门等日常字段，上传后系统自动抓取「工序名·品名·用量·单价」四项核心数据。</p>
+    <div class="grid-2">
+      <div>
+        <div style="font-weight:700;font-size:.82rem;color:#374151;margin-bottom:6px">表头列（12列）</div>
+        <div class="col-preview">领料日期 | 领料单号 | 物料编码 | 物料名称 | 规格型号 | 单位 | 请领数量 | 实发数量 | 单价 | 金额 | 领用部门/工序 | 领用人</div>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:.82rem;color:#374151;margin-bottom:6px">预览（前5行）</div>
+        <table class="preview-table">
+          <tr><th>领用部门/工序</th><th>物料名称</th><th>实发数量</th><th>单价</th><th>金额</th></tr>
+          <tr><td>下料车间</td><td>不锈钢板304</td><td>200</td><td>180.00</td><td>36000.00</td></tr>
+          <tr><td>下料车间</td><td>铝合金型材</td><td>150</td><td>85.00</td><td>12750.00</td></tr>
+          <tr><td>加工车间</td><td>切削液</td><td>50</td><td>120.00</td><td>6000.00</td></tr>
+          <tr><td>装配车间</td><td>螺栓套件M8</td><td>500</td><td>2.50</td><td>1250.00</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="downloadTemplate1()">下载：分步法领料模板.xlsx</button>
+      <button class="btn btn-outline" onclick="downloadTemplate1b()">下载：含能源消耗版.xlsx</button>
+    </div>
+  </div>
+
+  <!-- TEMPLATE 2: 多产品 -->
+  <div class="card">
+    <h2>模板二：多产品成本归集表 <span class="tag tag-green">生产成本核算系统·多产品Tab</span></h2>
+    <p>按产品归集各工序的材料/工时/工资率。每行一个产品，列按工序展开。</p>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="downloadTemplate2()">下载：多产品成本表.xlsx</button>
+      <button class="btn btn-outline" onclick="downloadTemplate2Full()">下载：完整版(含规格/编码等).xlsx</button>
+    </div>
+  </div>
+
+  <!-- TEMPLATE 3: 费用报销 -->
+  <div class="card">
+    <h2>模板三：费用报销明细表 <span class="tag tag-amber">费用报销自动分类器</span></h2>
+    <p>传统企业费用报销单格式，含部门/报销人/备注等额外列，上传后自动抓取日期+金额+摘要。</p>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="downloadTemplate3()">下载：费用报销模板.xlsx</button>
+    </div>
+  </div>
+
+  <!-- TEMPLATE 4: 差异分析 -->
+  <div class="card">
+    <h2>模板四：成本差异分析输入表 <span class="tag tag-blue">成本差异分析器</span></h2>
+    <p>标准成本 vs 实际成本对比。分两个Sheet：标准卡 + 实际卡，含物料编码、规格等日常字段。</p>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="downloadTemplate4()">下载：差异分析模板.xlsx</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== TEMPLATE 1: 分步法领料表 =====
+function downloadTemplate1() {
+  const headers = ['领料日期','领料单号','物料编码','物料名称','规格型号','单位','请领数量','实发数量','单价','金额','领用部门/工序','领用人'];
+  const rows = [
+    ['2024-06-01','LL-20240601-001','MAT-304-001','不锈钢板304','2.0×1500×3000mm','kg',200,200,180,36000,'下料车间','张伟'],
+    ['2024-06-01','LL-20240601-002','MAT-ALU-002','铝合金型材','6063-T5 40×40','kg',150,150,85,12750,'下料车间','张伟'],
+    ['2024-06-01','LL-20240601-003','MAT-Q235-003','碳钢板Q235','3.0×1250×2500mm','kg',300,300,45,13500,'下料车间','张伟'],
+    ['2024-06-02','LL-20240602-004','MAT-CUT-001','切削液','水溶性 20L/桶','桶',50,50,120,6000,'加工车间','李明'],
+    ['2024-06-02','LL-20240602-005','MAT-TOOL-002','刀具消耗','硬质合金刀片 TNMG','片',200,195,25,4875,'加工车间','李明'],
+    ['2024-06-03','LL-20240603-006','MAT-WHL-006','砂轮片','Φ150×20','片',80,78,35,2730,'加工车间','李明'],
+    ['2024-06-04','LL-20240604-007','MAT-BLT-M8','螺栓套件M8','8.8级 含螺母垫圈','套',500,500,2.5,1250,'装配车间','王芳'],
+    ['2024-06-04','LL-20240604-008','MAT-SEAL-001','密封圈','丁腈橡胶 Φ50×3','个',300,300,8,2400,'装配车间','王芳'],
+    ['2024-06-04','LL-20240604-009','MAT-LUBE-001','润滑脂','锂基 2号 15kg/桶','桶',40,40,65,2600,'装配车间','王芳'],
+    ['2024-06-05','LL-20240605-010','MAT-BOX-001','包装纸箱','5层瓦楞 400×300×200mm','个',1000,1000,3,3000,'检验包装','赵强'],
+    ['2024-06-05','LL-20240605-011','MAT-FOAM-001','泡沫填充','EPE珍珠棉','kg',500,500,1.2,600,'检验包装','赵强'],
+    ['2024-06-05','LL-20240605-012','MAT-LABEL-001','标签贴纸','不干胶 80×50mm','张',1000,1000,0.5,500,'检验包装','赵强'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:12},{wch:18},{wch:14},{wch:16},{wch:20},{wch:6},{wch:10},{wch:10},{wch:10},{wch:12},{wch:16},{wch:8}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '分步法材料领用表');
+  XLSX.writeFile(wb, '分步法材料领用模板.xlsx');
+}
+
+function downloadTemplate1b() {
+  const headers = ['领料日期','领料单号','物料编码','物料名称','规格型号','单位','请领数量','实发数量','单价','金额','领用部门/工序','领用人'];
+  const rows = [
+    ['2024-06-01','LL-20240601-001','MAT-304-001','不锈钢板304','2.0×1500×3000mm','kg',200,200,180,36000,'下料车间','张伟'],
+    ['2024-06-01','LL-20240601-002','MAT-ALU-002','铝合金型材','6063-T5 40×40','kg',150,150,85,12750,'下料车间','张伟'],
+    ['2024-06-01','LL-20240601-003','MAT-Q235-003','碳钢板Q235','3.0×1250×2500mm','kg',300,300,45,13500,'下料车间','张伟'],
+    ['2024-06-02','LL-20240602-004','MAT-CUT-001','切削液','水溶性 20L/桶','桶',50,50,120,6000,'加工车间','李明'],
+    ['2024-06-02','LL-20240602-005','MAT-TOOL-002','刀具消耗','硬质合金刀片 TNMG','片',200,195,25,4875,'加工车间','李明'],
+    ['2024-06-03','LL-20240603-006','MAT-WHL-006','砂轮片','Φ150×20','片',80,78,35,2730,'加工车间','李明'],
+    ['2024-06-04','LL-20240604-007','MAT-BLT-M8','螺栓套件M8','8.8级 含螺母垫圈','套',500,500,2.5,1250,'装配车间','王芳'],
+    ['2024-06-04','LL-20240604-008','MAT-SEAL-001','密封圈','丁腈橡胶 Φ50×3','个',300,300,8,2400,'装配车间','王芳'],
+    ['2024-06-04','LL-20240604-009','MAT-LUBE-001','润滑脂','锂基 2号 15kg/桶','桶',40,40,65,2600,'装配车间','王芳'],
+    ['2024-06-05','LL-20240605-010','MAT-BOX-001','包装纸箱','5层瓦楞 400×300×200mm','个',1000,1000,3,3000,'检验包装','赵强'],
+    ['2024-06-05','LL-20240605-011','MAT-FOAM-001','泡沫填充','EPE珍珠棉','kg',500,500,1.2,600,'检验包装','赵强'],
+    ['2024-06-05','LL-20240605-012','MAT-LABEL-001','标签贴纸','不干胶 80×50mm','张',1000,1000,0.5,500,'检验包装','赵强'],
+    // Energy rows
+    ['2024-06-01','LL-20240601-E01','ENG-ELEC','电','工业用电 380V','kWh',1200,1200,0.85,1020,'下料车间','张伟'],
+    ['2024-06-02','LL-20240602-E02','ENG-ELEC','电','工业用电 380V','kWh',3500,3500,0.85,2975,'加工车间','李明'],
+    ['2024-06-02','LL-20240602-E03','ENG-WATER','水','工业用水','t',80,80,4.5,360,'加工车间','李明'],
+    ['2024-06-04','LL-20240604-E04','ENG-ELEC','电','工业用电 380V','kWh',800,800,0.85,680,'装配车间','王芳'],
+    ['2024-06-04','LL-20240604-E05','ENG-GAS','燃气','天然气','m³',60,60,3.2,192,'装配车间','王芳'],
+    ['2024-06-05','LL-20240605-E06','ENG-ELEC','电','工业用电 380V','kWh',400,400,0.85,340,'检验包装','赵强'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:12},{wch:18},{wch:14},{wch:16},{wch:20},{wch:6},{wch:10},{wch:10},{wch:10},{wch:12},{wch:16},{wch:8}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '含能源材料领用表');
+  XLSX.writeFile(wb, '分步法材料领用模板_含能源.xlsx');
+}
+
+// ===== TEMPLATE 2: 多产品归集 =====
+function downloadTemplate2() {
+  const headers = ['产品名称','产量(件)','工序1材料(¥)','工序1工时(h)','工序1工资率(¥/h)','工序2材料(¥)','工序2工时(h)','工序2工资率(¥/h)','工序3材料(¥)','工序3工时(h)','工序3工资率(¥/h)'];
+  const rows = [
+    ['产品A-标准型',500,36000,200,35,6000,350,40,1250,250,38],
+    ['产品B-轻量型',300,27000,120,40,4875,200,25,2400,180,42],
+    ['产品C-定制型',200,18000,100,38,2730,250,35,2600,150,45],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = Array(11).fill({wch:14});
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '多产品成本归集');
+  XLSX.writeFile(wb, '多产品成本归集模板.xlsx');
+}
+
+function downloadTemplate2Full() {
+  const headers = ['产品编码','产品名称','规格型号','产量(件)','工序1材料(¥)','工序1工时(h)','工序1工资率(¥/h)','工序2材料(¥)','工序2工时(h)','工序2工资率(¥/h)','工序3材料(¥)','工序3工时(h)','工序3工资率(¥/h)','备注'];
+  const rows = [
+    ['PRD-A001','产品A-标准型','STD-200W',500,36000,200,35,6000,350,40,1250,250,38,''],
+    ['PRD-B001','产品B-轻量型','LITE-150W',300,27000,120,40,4875,200,25,2400,180,42,''],
+    ['PRD-C001','产品C-定制型','CUST-300W',200,18000,100,38,2730,250,35,2600,150,45,'客户定制批次'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = Array(14).fill({wch:14});
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '多产品成本归集');
+  XLSX.writeFile(wb, '多产品成本归集模板_完整版.xlsx');
+}
+
+// ===== TEMPLATE 3: 费用报销 =====
+function downloadTemplate3() {
+  const headers = ['报销日期','报销单号','部门','报销人','费用摘要','金额','备注'];
+  const rows = [
+    ['2024-06-01','BX-202406-001','行政部','张伟','A4复印纸 10箱 + HP墨盒 5个',358,'京东采购'],
+    ['2024-06-02','BX-202406-002','技术部','李明','阿里云服务器月租费 ECS 2台',1200,''],
+    ['2024-06-03','BX-202406-003','销售部','王芳','滴滴打车 拜访客户 往返机场',186.5,'出差-北京'],
+    ['2024-06-04','BX-202406-004','法务部','赵强','律师事务所咨询费 合同审查',5000,''],
+    ['2024-06-05','BX-202406-005','行政部','周敏','顺丰快递 寄合同文件',23,''],
+    ['2024-06-06','BX-202406-006','销售部','王芳','商务宴请 客户3人 湘菜馆',680,'招待费'],
+    ['2024-06-07','BX-202406-007','技术部','李明','JetBrains IDE年费续费',1499,''],
+    ['2024-06-08','BX-202406-008','行政部','张伟','办公室桶装水 30桶',360,''],
+    ['2024-06-09','BX-202406-009','市场部','陈磊','巨量引擎信息流广告投放',5000,'6月预算'],
+    ['2024-06-10','BX-202406-010','行政部','周敏','保洁服务费 6月份',2800,''],
+    ['2024-06-11','BX-202406-011','技术部','李明','域名续费 example.com 1年',89,''],
+    ['2024-06-12','BX-202406-012','财务部','刘洋','银行对公账户年费',120,''],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:12},{wch:18},{wch:10},{wch:10},{wch:36},{wch:12},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '费用报销明细');
+  XLSX.writeFile(wb, '费用报销模板.xlsx');
+}
+
+// ===== TEMPLATE 4: 差异分析 =====
+function downloadTemplate4() {
+  // Sheet 1: 标准成本
+  const stdHeaders = ['物料编码','品名','规格型号','标准单价','标准用量','标准总成本','单位','备注'];
+  const stdRows = [
+    ['MAT-IC-001','芯片IC-A','STM32F407VGT6',12.5,500,6250,'个',''],
+    ['MAT-CAP-002','电容B-100μF','16V 贴片 0805',0.85,3000,2550,'个',''],
+    ['MAT-PCB-003','PCB板4层','FR-4 100×80mm',28,200,5600,'块',''],
+    ['MAT-CON-004','连接器TypeC','USB-C 16P 沉板',3.2,800,2560,'个',''],
+    ['MAT-HS-005','散热片铝','AL6063 40×40×20mm',4.5,400,1800,'个',''],
+    ['LAB-ASM-001','SMT贴片人工','',0.08,5000,400,'点','外协'],
+    ['LAB-TEST-002','测试检验人工','',0.12,2000,240,'点',''],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet([stdHeaders, ...stdRows]);
+  ws1['!cols'] = [{wch:14},{wch:16},{wch:18},{wch:12},{wch:10},{wch:12},{wch:8},{wch:16}];
+
+  // Sheet 2: 实际成本
+  const actHeaders = ['物料编码','品名','规格型号','实际单价','实际用量','实际总成本','单位','备注'];
+  const actRows = [
+    ['MAT-IC-001','芯片IC-A','STM32F407VGT6',14.2,480,6816,'个','供应商涨价'],
+    ['MAT-CAP-002','电容B-100μF','16V 贴片 0805',0.82,3100,2542,'个',''],
+    ['MAT-PCB-003','PCB板4层','FR-4 100×80mm',28,195,5460,'块',''],
+    ['MAT-CON-004','连接器TypeC','USB-C 16P 沉板',3.5,780,2730,'个',''],
+    ['MAT-HS-005','散热片铝','AL6063 40×40×20mm',4.3,420,1806,'个',''],
+    ['LAB-ASM-001','SMT贴片人工','',0.085,5200,442,'点','效率提升'],
+    ['LAB-TEST-002','测试检验人工','',0.12,1900,228,'点',''],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet([actHeaders, ...actRows]);
+  ws2['!cols'] = [{wch:14},{wch:16},{wch:18},{wch:12},{wch:10},{wch:12},{wch:8},{wch:16}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, '标准成本');
+  XLSX.utils.book_append_sheet(wb, ws2, '实际成本');
+  XLSX.writeFile(wb, '成本差异分析模板.xlsx');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生产成本核算系统 | 分步法 · 逐步结转 · 多产品</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--blue:#3b82f6;--blue-bg:#eff6ff;--red:#ef4444;--red-bg:#fef2f2;--green:#16a34a;--green-bg:#f0fdf4;--amber:#d97706;--amber-bg:#fffbeb;--purple:#7c3aed;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f1f5f9;color:var(--gray-900);line-height:1.6}
+.container{max-width:1400px;margin:0 auto;padding:16px 20px}
+h1{font-size:1.6rem;color:var(--gray-900)}
+.subtitle{color:var(--gray-500);font-size:.85rem;margin-bottom:16px}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#1e3a5f,#7c3aed);border-radius:14px;padding:28px 28px 22px;color:#fff;margin-bottom:20px}
+.hero h1{font-size:1.8rem;color:#fff}
+.hero .hero-sub{opacity:.85;margin-top:6px;font-size:.95rem}
+.hero-badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.hbadge{background:rgba(255,255,255,.15);padding:5px 14px;border-radius:20px;font-size:.78rem}
+
+/* Tabs */
+.tab-bar{display:flex;gap:4px;margin-bottom:18px;background:var(--gray-200);border-radius:10px;padding:4px}
+.tab-btn{flex:1;padding:10px 16px;text-align:center;border-radius:8px;cursor:pointer;font-size:.88rem;font-weight:600;border:none;background:transparent;color:var(--gray-500);transition:all .15s}
+.tab-btn.active{background:#fff;color:var(--gray-900);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Section */
+.section{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--gray-100)}
+.section h2{font-size:1.05rem;color:var(--gray-900);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section h3{font-size:.9rem;color:var(--gray-700);margin-bottom:8px}
+
+/* Step config */
+.step-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.step-card{background:var(--gray-50);border-radius:10px;padding:16px;border:1px solid var(--gray-200);position:relative;transition:all .15s}
+.step-card:hover{border-color:var(--blue)}
+.step-card .step-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.step-card .step-header h3{font-size:.9rem;margin:0;display:flex;align-items:center;gap:6px}
+.step-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.72rem;font-weight:700;color:#fff}
+.step-badge.s1{background:#3b82f6}
+.step-badge.s2{background:#8b5cf6}
+.step-badge.s3{background:#ec4899}
+.step-badge.s4{background:#f59e0b}
+.step-badge.s5{background:#10b981}
+.step-badge.s6{background:#ef4444}
+
+.step-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:.82rem}
+.step-row label{width:75px;flex-shrink:0;color:var(--gray-700);font-weight:600;font-size:.78rem;text-align:right}
+.step-row input{flex:1;padding:6px 10px;border:1px solid var(--gray-300);border-radius:6px;font-size:.82rem;text-align:right;min-width:0}
+.step-row input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,.12)}
+.step-row .unit{width:40px;flex-shrink:0;font-size:.75rem;color:var(--gray-500);text-align:left}
+.step-transfer{background:linear-gradient(135deg,#fef3c7,#fffbeb);border:1px solid #fde68a;border-radius:6px;padding:8px 10px;margin-top:10px;font-size:.78rem;color:#92400e;font-weight:600}
+.mat-sub-table{width:100%;font-size:.8rem;margin-top:6px;border-collapse:collapse}
+.mat-sub-table th{background:var(--gray-50);font-size:.7rem;padding:5px 6px;text-align:left}
+.mat-sub-table td{padding:3px 4px;border-bottom:1px solid var(--gray-100);text-align:right}
+.mat-sub-table td:first-child{text-align:left}
+.mat-sub-table td input{padding:3px 6px;border:1px solid var(--gray-300);border-radius:3px;font-size:.78rem;width:100%;text-align:right;min-width:40px}
+.mat-sub-table td input.name-input{text-align:left;min-width:70px}
+.mat-sub-table td input.qty-input{width:70px}
+.mat-sub-table td input.price-input{width:80px}
+.mat-total{font-size:.8rem;font-weight:700;color:var(--blue);margin-top:4px;display:flex;justify-content:space-between;align-items:center}
+.mat-total .total-amt{font-size:.88rem}
+.mat-sub-wrap{border:1px solid #bfdbfe;border-radius:6px;padding:8px;background:#fff;margin-top:8px}
+.mat-sub-wrap .mat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.mat-sub-wrap .mat-header span{font-size:.78rem;font-weight:700;color:var(--blue)}
+.add-mat-link{color:var(--blue);font-size:.75rem;cursor:pointer;font-weight:600;text-decoration:underline;margin-top:4px;display:inline-block}
+.add-mat-link:hover{color:#1d4ed8}
+
+/* OH section */
+.oh-config{background:#faf5ff;border:1px solid #e9d8fd;border-radius:8px;padding:14px;margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.oh-config label{font-size:.82rem;font-weight:600;color:var(--purple)}
+.oh-config select,.oh-config input{padding:6px 10px;border:1px solid var(--gray-300);border-radius:6px;font-size:.82rem}
+
+/* Table */
+.table-wrap{overflow-x:auto;max-height:600px;overflow-y:auto;border-radius:8px;border:1px solid var(--gray-200)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--gray-200)}
+th{background:var(--gray-50);color:var(--gray-700);font-weight:700;font-size:.75rem;position:sticky;top:0;z-index:2}
+td:first-child,th:first-child{text-align:left;font-weight:600}
+tr:hover{background:var(--gray-50)}
+tr.total-row{background:#fef3c7!important;font-weight:700;font-size:.88rem}
+tr.total-row td{border-top:2px solid #f59e0b;padding:12px 10px}
+td input,td select{padding:5px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:.82rem;width:100%;text-align:right;min-width:60px}
+td input.name-input{text-align:left;min-width:100px}
+td input:focus{outline:none;border-color:var(--blue)}
+.step-product{background:#f0fdf4;border-left:3px solid #16a34a;padding-left:12px}
+
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.summary-card{background:var(--gray-50);border-radius:10px;padding:14px;text-align:center;border-left:3px solid transparent}
+.summary-card .value{font-size:1.3rem;font-weight:800;line-height:1.2}
+.summary-card .label{font-size:.76rem;color:var(--gray-500);margin-top:2px}
+.summary-card.info{border-left-color:var(--blue);background:var(--blue-bg)}
+.summary-card.good{border-left-color:var(--green);background:var(--green-bg)}
+
+/* Buttons */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{padding:8px 18px;border:none;border-radius:8px;font-size:.85rem;cursor:pointer;font-weight:600;transition:all .15s}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:#2563eb;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{background:#15803d}
+.btn-outline{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}.btn-outline:hover{background:var(--blue-bg)}
+.btn-ghost{background:var(--gray-100);color:var(--gray-700)}.btn-ghost:hover{background:var(--gray-200)}
+.btn-sm{padding:5px 12px;font-size:.78rem}
+.btn-danger{background:#fee2e2;color:#991b1b}.btn-danger:hover{background:#fecaca}
+
+.upload-btn{position:relative;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:var(--blue-bg);color:var(--blue);border:1px dashed var(--blue);border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600}
+.upload-btn:hover{background:#dbeafe;border-style:solid}
+.upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-ok{color:var(--green);font-size:.75rem;font-weight:600}
+
+/* Flow visual */
+.flow-viz{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:18px;font-size:.8rem}
+.flow-step{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;padding:8px 14px;text-align:center;min-width:100px}
+.flow-step .fs-name{font-weight:700;color:var(--blue)}
+.flow-step .fs-cost{font-size:.72rem;color:var(--gray-500);margin-top:2px}
+.flow-arrow{color:var(--gray-300);font-size:1.2rem;font-weight:700}
+
+.hidden{display:none!important}
+.footer{text-align:center;padding:20px;color:var(--gray-400);font-size:.76rem}
+</style>
+</head>
+<body>
+<div class="container">
+<!-- HERO -->
+<div class="hero">
+  <h1>生产成本核算系统</h1>
+  <p class="hero-sub">分步法（逐步结转）| 多工序 | 多产品 | 材料+人工+费用 | 上步成本自动带入 | Excel上传</p>
+  <div class="hero-badges">
+    <span class="hbadge">逐步结转分步法</span><span class="hbadge">约当产量法</span>
+    <span class="hbadge">材料+人工+费用</span><span class="hbadge">Excel导入</span>
+    <span class="hbadge">本地运行</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('steps')">分步法核算 (A+C)</button>
+  <button class="tab-btn" onclick="switchTab('products')">多产品归集 (B+C)</button>
+  <button class="tab-btn" onclick="switchTab('guide')">使用指南</button>
+</div>
+
+<!-- ==================== TAB 1: 分步法 (A+C) ==================== -->
+<div id="tab-steps" class="tab-panel active">
+  <!-- Flow visualization -->
+  <div class="flow-viz" id="flowViz"></div>
+
+  <!-- Step configuration -->
+  <div class="section">
+    <h2>工序设置</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:.85rem;color:var(--gray-700);font-weight:600">完工产量：</span>
+      <input type="number" id="finishedQty" value="1000" min="1" style="width:100px;padding:6px 10px;border:1px solid var(--gray-300);border-radius:6px;text-align:right;font-size:.85rem" onchange="recalcAll('steps')">
+      <span style="font-size:.8rem;color:var(--gray-500)">件</span>
+
+      <span style="font-size:.85rem;color:var(--gray-700);font-weight:600;margin-left:20px">月末在产品：</span>
+      <input type="number" id="endingWIP" value="200" min="0" style="width:100px;padding:6px 10px;border:1px solid var(--gray-300);border-radius:6px;text-align:right;font-size:.85rem" onchange="recalcAll('steps')">
+      <span style="font-size:.8rem;color:var(--gray-500)">件</span>
+
+      <span style="font-size:.85rem;color:var(--gray-700);font-weight:600;margin-left:20px">在产品完工程度：</span>
+      <input type="number" id="wipPct" value="50" min="0" max="100" style="width:70px;padding:6px 10px;border:1px solid var(--gray-300);border-radius:6px;text-align:right;font-size:.85rem" onchange="recalcAll('steps')">
+      <span style="font-size:.8rem;color:var(--gray-500)">%</span>
+    </div>
+
+    <div class="oh-config">
+      <label>制造费用分配方法：</label>
+      <select id="ohMethod" onchange="recalcAll('steps')">
+        <option value="labor_hours">按直接人工工时</option>
+        <option value="labor_cost">按直接人工成本比例</option>
+        <option value="material_cost">按材料成本比例</option>
+        <option value="output">按产量平均</option>
+      </select>
+      <label style="margin-left:16px">费用总额 (¥)：</label>
+      <input type="number" id="ohTotalAmt" value="50000" step="1000" style="width:130px" onchange="recalcAll('steps')">
+      <label style="margin-left:8px;color:var(--gray-500);font-weight:400;font-size:.78rem">（自动按方法分配至各工序）</label>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="addStep()">+ 添加工序</button>
+      <button class="btn btn-ghost btn-sm" onclick="setDefaultSteps()">重置为默认4工序</button>
+      <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadStepExcel(this)"> 上传Excel填充</label>
+      <span class="upload-ok hidden" id="stepUploadOk"></span>
+      <button class="btn btn-ghost btn-sm" onclick="resetUpload()" title="清除上传数据，恢复默认">重置上传</button>
+      <span style="font-size:.78rem;color:var(--gray-500);margin-left:8px">下载模板：
+        <a href="模板_分步法材料领用表.xlsx" download style="color:var(--blue);font-weight:600;text-decoration:underline">标准版</a>
+        <span style="color:var(--gray-300)">|</span>
+        <a href="模板_分步法材料领用表_含能源.xlsx" download style="color:#16a34a;font-weight:600;text-decoration:underline">含能源版</a>
+      </span>
+    </div>
+  </div>
+
+  <!-- Step cards -->
+  <div class="step-cards" id="stepCards"></div>
+
+  <!-- Result table -->
+  <div class="section">
+    <h2>成本计算单（逐步结转）</h2>
+    <div class="table-wrap"><table id="stepResultTable"><thead id="stepResultHead"></thead><tbody id="stepResultBody"></tbody></table></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section">
+    <h2>完工产品成本汇总</h2>
+    <div class="summary-grid" id="stepSummary"></div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: 多产品批量 (B+C) ==================== -->
+<div id="tab-products" class="tab-panel">
+  <div class="section">
+    <h2>多产品成本归集</h2>
+    <p style="font-size:.82rem;color:var(--gray-500);margin-bottom:12px">每行一个产品，填入各工序的材料/人工/工时。费用按全厂统一分配。上步成本自动累积。</p>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:.85rem;color:var(--gray-700);font-weight:600">工序数：</span>
+      <input type="number" id="batchSteps" value="3" min="1" max="6" style="width:60px;padding:6px;border:1px solid var(--gray-300);border-radius:6px;text-align:center;font-size:.85rem" onchange="recalcAll('products')">
+      <span style="font-size:.85rem;color:var(--gray-700);font-weight:600;margin-left:16px">费用总额(¥)：</span>
+      <input type="number" id="batchOH" value="30000" step="1000" style="width:120px;padding:6px;border:1px solid var(--gray-300);border-radius:6px;text-align:right;font-size:.85rem" onchange="recalcAll('products')">
+      <span style="font-size:.85rem;color:var(--gray-700);font-weight:600;margin-left:16px">分配方法：</span>
+      <select id="batchOHMethod" onchange="recalcAll('products')" style="padding:6px 10px;border:1px solid var(--gray-300);border-radius:6px">
+        <option value="labor_hours">按工时</option><option value="labor_cost">按人工成本</option>
+      </select>
+      <label class="upload-btn" style="margin-left:16px"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadProductExcel(this)"> 上传Excel</label>
+      <span class="upload-ok hidden" id="prodUploadOk"></span>
+      <span style="font-size:.78rem;color:var(--gray-500);margin-left:8px">
+        <a href="模板_多产品成本归集表.xlsx" download style="color:var(--blue);font-weight:600;text-decoration:underline">下载模板</a>
+      </span>
+    </div>
+    <div class="table-wrap"><table id="batchTable"><thead id="batchHead"></thead><tbody id="batchBody"></tbody></table></div>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="addBatchProduct()">+ 添加产品</button>
+      <button class="btn btn-outline btn-sm" onclick="addBatchProducts(3)">+3行</button>
+      <button class="btn btn-success btn-sm" onclick="exportBatch()">导出Excel</button>
+    </div>
+  </div>
+  <div class="section" id="batchMatSection">
+    <h2 style="cursor:pointer" onclick="toggleBatchMatDetail()">材料明细 <span id="batchMatToggle">▼</span></h2>
+    <div id="batchMatContent" style="display:none"></div>
+  </div>
+  <div class="section">
+    <h2>汇总</h2>
+    <div class="summary-grid" id="batchSummary"></div>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: 使用指南 ==================== -->
+<div id="tab-guide" class="tab-panel">
+  <div class="section">
+    <h2>成本核算方法说明</h2>
+    <div style="display:grid;gap:16px;font-size:.88rem;line-height:1.8">
+      <div style="background:var(--blue-bg);border-radius:10px;padding:20px">
+        <h3>分步法（逐步结转分步法）</h3>
+        <p style="color:#1e40af">
+          每个生产工序（步骤）的成本逐步结转到下一工序。<br>
+          <strong>本步成本 = 上步转入成本 + 本步材料 + 本步人工 + 本步费用</strong><br>
+          完工产品成本按<strong>约当产量法</strong>在完工产品和在产品之间分配：<br>
+          约当产量 = 完工产量 + 在产品数量 × 完工程度%<br>
+          单位成本 = 本步总成本 ÷ 约当产量<br>
+          完工成本 = 单位成本 × 完工产量
+        </p>
+      </div>
+      <div style="background:var(--green-bg);border-radius:10px;padding:20px">
+        <h3>Excel上传格式要求</h3>
+        <p style="color:#166534">
+          <strong>分步法</strong>：每行一个工序 &nbsp; 工序名 | 材料金额 | 人工工时 | 小时工资率<br>
+          <strong>多产品</strong>：每行一个产品 &nbsp; 产品名 | 产量 | 工序1材料 | 工序1工时 | 工序1工资率 | 工序2材料 | ...<br>
+          系统自动识别列数，第一张工作表优先。
+        </p>
+      </div>
+      <div style="background:var(--amber-bg);border-radius:10px;padding:20px">
+        <h3>数据隐私</h3>
+        <p style="color:#92400e">纯前端HTML单文件，所有计算在浏览器本地完成，<strong>数据不上传任何服务器</strong>。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">生产成本核算系统 · 分步法/逐步结转 · 数据本地运行不上传 · 免费使用</div>
+</div>
+
+<script>
+// ===== 智能列名匹配引擎 =====
+const COL_ALIASES = {
+  name: ['品名','名称','物料名称','材料名称','产品名称','费用名称','项目','项目名称','科目','工序','工序名','步骤','物料','材料','产品','name','item','part','material','product','摘要','事项','用途','说明','描述'],
+  spec: ['规格','型号','规格型号','牌号','spec','model','type'],
+  qty: ['用量','数量','耗用','消耗量','单位用量','定额用量','实发数量','发料数量','实际用量','标准用量','qty','quantity','usage','count','件数','产量'],
+  unitPrice: ['单价','价格','标准单价','实际单价','采购单价','工资率','小时工资','费率','price','unit_price','rate','cost_per'],
+  amount: ['金额','总成本','总价','合计','标准总成本','实际总成本','成本','费用金额','总额','amount','total','cost','sum','报销金额','支出金额'],
+  laborHours: ['工时','人工工时','直接工时','标准工时','实际工时','小时','小时数','hours','labor_hours','man_hours','工作时间','机时'],
+  laborRate: ['工资率','小时工资','费率','标准工资率','实际工资率','rate','wage','hourly_rate'],
+  laborCost: ['人工成本','直接人工','人工费','工资','labor_cost','labor','man_cost','薪酬'],
+  date: ['日期','时间','发生日期','报销日期','记账日期','date','time','when','制单日期'],
+  qtyOut: ['产量','完工产量','产出','成品数','output','finished','产出量','完工数量'],
+  code: ['编码','物料编码','料号','产品编码','编号','领料单号','单号','code','part_no','item_no','pn','sku'],
+  dept: ['部门','领用部门','领用部门/工序','使用部门','成本中心','dept','department','center'],
+  person: ['领用人','经手人','报销人','申请人','员工','操作人','person','user','employee','by'],
+  energy: ['能源','能耗','电','水','燃气','蒸汽','天然气','energy','power','water','gas','steam'],
+};
+
+function colMatchScore(header, candidate) {
+  const h = header.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
+  const c = candidate.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
+  if (h === c) return 100;
+  if (h.includes(c)) return 90;
+  if (c.includes(h)) return 85;
+  let maxLen = 0;
+  for (let i=0;i<h.length;i++) {
+    for (let j=i+1;j<=h.length;j++) {
+      if (c.includes(h.slice(i,j))) maxLen = Math.max(maxLen, j-i);
+    }
+  }
+  return maxLen >= 2 ? 50 + maxLen*5 : 0;
+}
+
+function smartMapColumns(headers) {
+  const mapping = {};
+  const fields = Object.keys(COL_ALIASES);
+  for (const field of fields) {
+    let bestIdx = -1, bestScore = 50;
+    for (let i=0;i<headers.length;i++) {
+      const hdr = String(headers[i]||'').trim();
+      if (!hdr) continue;
+      for (const alias of COL_ALIASES[field]) {
+        const score = colMatchScore(hdr, alias);
+        if (score > bestScore) { bestScore = score; bestIdx = i; }
+      }
+    }
+    if (bestIdx >= 0) mapping[field] = bestIdx;
+  }
+  return mapping;
+}
+
+function extractRow(row, mapping) {
+  const obj = {};
+  for (const [field, idx] of Object.entries(mapping)) {
+    obj[field] = (row[idx] !== undefined && row[idx] !== null) ? String(row[idx]).trim() : '';
+  }
+  return obj;
+}
+
+// ===== STATE =====
+// stepsData[i].materials = [{name, qty, unitPrice}], .energies = [{name, qty, unitPrice}]
+let stepsData = [];
+const STEP_COLORS = ['s1','s2','s3','s4','s5','s6'];
+
+function calcSum(items) { return items.reduce((s,m)=>s+(m.qty||0)*(m.unitPrice||0),0); }
+
+function setDefaultSteps() {
+  stepsData = [
+    {name:'下料车间', materials:[
+      {name:'不锈钢板304', qty:200, unitPrice:180},
+      {name:'铝合金型材', qty:150, unitPrice:85},
+      {name:'碳钢板Q235', qty:300, unitPrice:45}
+    ], energies:[
+      {name:'电', qty:1200, unitPrice:0.85},
+      {name:'压缩空气', qty:3000, unitPrice:0.12}
+    ], laborMode:'calculated', laborHours:200, laborRate:35, laborCost:7000, material:0, energy:0},
+    {name:'加工车间', materials:[
+      {name:'切削液', qty:50, unitPrice:120},
+      {name:'刀具消耗', qty:200, unitPrice:25},
+      {name:'砂轮片', qty:80, unitPrice:35}
+    ], energies:[
+      {name:'电', qty:3500, unitPrice:0.85},
+      {name:'水', qty:80, unitPrice:4.5},
+      {name:'切削液回收', qty:1, unitPrice:0}
+    ], laborMode:'calculated', laborHours:350, laborRate:40, laborCost:14000, material:0, energy:0},
+    {name:'装配车间', materials:[
+      {name:'螺栓套件M8', qty:500, unitPrice:2.5},
+      {name:'密封圈', qty:300, unitPrice:8},
+      {name:'润滑脂', qty:40, unitPrice:65}
+    ], energies:[
+      {name:'电', qty:800, unitPrice:0.85},
+      {name:'燃气', qty:60, unitPrice:3.2}
+    ], laborMode:'manual', laborHours:250, laborRate:38, laborCost:9500, material:0, energy:0},
+    {name:'检验包装', materials:[
+      {name:'包装纸箱', qty:1000, unitPrice:3},
+      {name:'泡沫填充', qty:500, unitPrice:1.2},
+      {name:'标签贴纸', qty:1000, unitPrice:0.5}
+    ], energies:[
+      {name:'电', qty:400, unitPrice:0.85}
+    ], laborMode:'manual', laborHours:120, laborRate:30, laborCost:4100, material:0, energy:0},
+  ];
+  stepsData.forEach(s => { s.material = calcSum(s.materials); s.energy = calcSum(s.energies||[]); });
+  document.getElementById('ohTotalAmt').value = 50000;
+  document.getElementById('finishedQty').value = 1000;
+  document.getElementById('endingWIP').value = 200;
+  document.getElementById('wipPct').value = 50;
+  renderStepCards();
+  recalcAll('steps');
+}
+function resetUpload() {
+  stepsData = [];
+  document.getElementById('stepUploadOk').classList.add('hidden');
+  // Clear any file input
+  var fi = document.querySelector('#tab-steps input[type=file]');
+  if(fi) fi.value = '';
+  setDefaultSteps();
+}
+
+function addStep() {
+  const idx = stepsData.length + 1;
+  stepsData.push({name:`工序${idx}`, materials:[{name:'原材料', qty:100, unitPrice:50}],
+    energies:[{name:'电', qty:500, unitPrice:0.85}],
+    laborMode:'calculated', laborHours:150, laborRate:35, laborCost:5250, material:5000, energy:425});
+  renderStepCards();
+  recalcAll('steps');
+}
+
+// ===== TAB =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',(tab==='steps'&&i===0)||(tab==='products'&&i===1)||(tab==='guide'&&i===2));
+  });
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if(tab==='steps') {renderStepCards();recalcAll('steps');}
+  if(tab==='products') {renderBatchTable();recalcAll('products');}
+}
+
+// ===== MATERIAL & ENERGY HELPERS =====
+function updateMat(stepIdx, matIdx, field, value) {
+  if(!stepsData[stepIdx].materials) stepsData[stepIdx].materials = [];
+  stepsData[stepIdx].materials[matIdx][field] = value;
+  stepsData[stepIdx].material = calcSum(stepsData[stepIdx].materials);
+  renderStepCards(); recalcAll('steps');
+}
+function addMat(stepIdx) {
+  if(!stepsData[stepIdx].materials) stepsData[stepIdx].materials = [];
+  stepsData[stepIdx].materials.push({name:'新材料', qty:1, unitPrice:10});
+  stepsData[stepIdx].material = calcSum(stepsData[stepIdx].materials);
+}
+function removeMat(stepIdx, matIdx) {
+  stepsData[stepIdx].materials.splice(matIdx, 1);
+  if(!stepsData[stepIdx].materials.length) stepsData[stepIdx].materials = [{name:'原材料', qty:1, unitPrice:10}];
+  stepsData[stepIdx].material = calcSum(stepsData[stepIdx].materials);
+  renderStepCards(); recalcAll('steps');
+}
+function updateEnergy(stepIdx, idx, field, value) {
+  if(!stepsData[stepIdx].energies) stepsData[stepIdx].energies = [];
+  stepsData[stepIdx].energies[idx][field] = value;
+  stepsData[stepIdx].energy = calcSum(stepsData[stepIdx].energies);
+  renderStepCards(); recalcAll('steps');
+}
+function addEnergy(stepIdx) {
+  if(!stepsData[stepIdx].energies) stepsData[stepIdx].energies = [];
+  stepsData[stepIdx].energies.push({name:'电', qty:100, unitPrice:0.85});
+  stepsData[stepIdx].energy = calcSum(stepsData[stepIdx].energies);
+}
+function removeEnergy(stepIdx, idx) {
+  stepsData[stepIdx].energies.splice(idx, 1);
+  if(!stepsData[stepIdx].energies.length) stepsData[stepIdx].energies = [{name:'电', qty:100, unitPrice:0.85}];
+  stepsData[stepIdx].energy = calcSum(stepsData[stepIdx].energies);
+  renderStepCards(); recalcAll('steps');
+}
+
+// ===== RENDER STEP CARDS =====
+function renderStepCards() {
+  const container = document.getElementById('stepCards');
+  const flowViz = document.getElementById('flowViz');
+
+  container.innerHTML = stepsData.map((s,i) => {
+    const mats = s.materials || [];
+    const engs = s.energies || [];
+    const matRows = mats.map((m,mi) => `
+      <tr>
+        <td><input class="name-input" value="${m.name||''}" placeholder="材料名" onchange="updateMat(${i},${mi},'name',this.value)"></td>
+        <td><input class="qty-input" type="number" value="${m.qty||''}" step="1" min="0" onchange="updateMat(${i},${mi},'qty',+this.value)"></td>
+        <td><input class="price-input" type="number" value="${m.unitPrice||''}" step="0.01" min="0" onchange="updateMat(${i},${mi},'unitPrice',+this.value)"></td>
+        <td style="font-weight:600;color:var(--blue)">¥${((m.qty||0)*(m.unitPrice||0)).toLocaleString()}</td>
+        <td style="text-align:center"><button class="btn btn-danger btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="removeMat(${i},${mi})">×</button></td>
+      </tr>`).join('');
+    const engRows = engs.map((e,ei) => `
+      <tr>
+        <td><input class="name-input" value="${e.name||''}" placeholder="能源名" onchange="updateEnergy(${i},${ei},'name',this.value)"></td>
+        <td><input class="qty-input" type="number" value="${e.qty||''}" step="1" min="0" onchange="updateEnergy(${i},${ei},'qty',+this.value)"></td>
+        <td><input class="price-input" type="number" value="${e.unitPrice||''}" step="0.01" min="0" onchange="updateEnergy(${i},${ei},'unitPrice',+this.value)"></td>
+        <td style="font-weight:600;color:#16a34a">¥${((e.qty||0)*(e.unitPrice||0)).toLocaleString()}</td>
+        <td style="text-align:center"><button class="btn btn-danger btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="removeEnergy(${i},${ei})">×</button></td>
+      </tr>`).join('');
+
+    return `<div class="step-card">
+      <div class="step-header">
+        <h3><span class="step-badge ${STEP_COLORS[i%6]}">工序${i+1}</span> <input value="${s.name}" onchange="stepsData[${i}].name=this.value;renderStepCards();recalcAll('steps')" style="border:none;background:transparent;font-weight:700;font-size:.9rem;width:120px"></h3>
+        ${i>0?'<button class="btn btn-danger btn-sm" onclick="stepsData.splice('+i+',1);renderStepCards();recalcAll(\'steps\')">×</button>':''}
+      </div>
+      <div class="mat-sub-wrap">
+        <div class="mat-header"><span>📦 直接材料明细</span></div>
+        <table class="mat-sub-table"><thead><tr><th>原材料</th><th>用量</th><th>单价(¥)</th><th>金额(¥)</th><th></th></tr></thead><tbody>${matRows}</tbody></table>
+        <a class="add-mat-link" onclick="addMat(${i});renderStepCards();recalcAll('steps')">+ 添加原材料</a>
+        <div class="mat-total">材料合计 <span class="total-amt">¥${(s.material||calcSum(mats)).toLocaleString()}</span></div>
+      </div>
+      <div class="mat-sub-wrap" style="border-color:#bbf7d0;background:#f0fdf4">
+        <div class="mat-header"><span style="color:#16a34a">⚡ 能源消耗明细</span></div>
+        <table class="mat-sub-table"><thead><tr><th>能源</th><th>用量</th><th>单价(¥)</th><th>金额(¥)</th><th></th></tr></thead><tbody>${engRows}</tbody></table>
+        <a class="add-mat-link" style="color:#16a34a" onclick="addEnergy(${i});renderStepCards();recalcAll('steps')">+ 添加能源</a>
+        <div class="mat-total" style="color:#16a34a">能源合计 <span class="total-amt">¥${(s.energy||calcSum(engs)).toLocaleString()}</span></div>
+      </div>
+      <div class="step-row" style="margin-top:8px;margin-bottom:8px">
+        <label>人工计法</label>
+        <select onchange="stepsData[${i}].laborMode=this.value;renderStepCards();recalcAll('steps')" style="padding:5px 8px;border-radius:5px;border:1px solid var(--gray-300);font-size:.8rem">
+          <option value="calculated" ${s.laborMode!=='manual'?'selected':''}>工时 × 工资率（自动算）</option>
+          <option value="manual" ${s.laborMode==='manual'?'selected':''}>手动填入金额</option>
+        </select>
+      </div>
+      ${s.laborMode==='manual' ? `
+      <div class="step-row"><label>人工成本</label><input type="number" value="${s.laborCost||0}" step="100" onchange="stepsData[${i}].laborCost=+this.value;recalcAll('steps')"><span class="unit">¥</span></div>
+      ` : `
+      <div class="step-row"><label>人工工时</label><input type="number" value="${s.laborHours||''}" step="1" onchange="stepsData[${i}].laborHours=+this.value||0;stepsData[${i}].laborCost=(stepsData[${i}].laborHours||0)*(stepsData[${i}].laborRate||0);renderStepCards();recalcAll('steps')"><span class="unit">h</span></div>
+      <div class="step-row"><label>小时工资率</label><input type="number" value="${s.laborRate||''}" step="0.5" onchange="stepsData[${i}].laborRate=+this.value||0;stepsData[${i}].laborCost=(stepsData[${i}].laborHours||0)*(stepsData[${i}].laborRate||0);renderStepCards();recalcAll('steps')"><span class="unit">¥/h</span></div>
+      <div class="step-row"><label>人工成本</label><span style="flex:1;text-align:right;font-weight:700;color:var(--gray-900);padding-right:50px">¥${((s.laborHours||0)*(s.laborRate||0)).toLocaleString()}</span></div>
+      `}
+      ${i>0?`<div class="step-transfer">⬆ 上步转入：计算结果后自动填入</div>`:''}
+    </div>`;
+  }).join('');
+
+  flowViz.innerHTML = stepsData.map((s,i)=>`
+    <div class="flow-step"><div class="fs-name">${s.name}</div><div class="fs-cost">工序${i+1}</div></div>
+    ${i<stepsData.length-1?'<span class="flow-arrow">→</span>':''}
+  `).join('');
+}
+
+// ===== RECALC STEPS =====
+function recalcAll(tab) {
+  if(tab==='steps') recalcSteps();
+  if(tab==='products') recalcProducts();
+}
+
+function recalcSteps() {
+  if(!stepsData.length) return;
+  const finishedQty = +document.getElementById('finishedQty').value || 1000;
+  const endingWIP = +document.getElementById('endingWIP').value || 0;
+  const wipPct = (+document.getElementById('wipPct').value || 50) / 100;
+  const equivQty = finishedQty + endingWIP * wipPct; // 约当产量
+  const ohTotal = +document.getElementById('ohTotalAmt').value || 0;
+  const ohMethod = document.getElementById('ohMethod').value;
+
+  // Calculate OH allocation base
+  let totalBase = 0;
+  const bases = [];
+  stepsData.forEach(s => {
+    let base = 0;
+    if(ohMethod==='labor_hours') base = s.laborHours || 0;
+    else if(ohMethod==='labor_cost') base = (s.laborMode==='manual' ? (s.laborCost||0) : (s.laborHours||0)*(s.laborRate||0));
+    else if(ohMethod==='material_cost') base = s.material + (s.energy||0);
+    else base = 1; // output
+    bases.push(base);
+    totalBase += base;
+  });
+
+  // Calculate per-step costs
+  const stepResults = [];
+  let prevUnitCost = 0;
+
+  stepsData.forEach((s,i) => {
+    const ohAllocated = ohMethod==='output'
+      ? (ohTotal / stepsData.length)
+      : totalBase > 0 ? (ohTotal * bases[i] / totalBase) : 0;
+
+    const laborCost = s.laborMode==='manual' ? (s.laborCost||0) : (s.laborHours||0) * (s.laborRate||0);
+    const energyCost = s.energy || calcSum(s.energies||[]);
+    const transferIn = i===0 ? 0 : prevUnitCost * finishedQty; // 上步转入=上步单位成本×完工产量
+    const totalStepCost = transferIn + s.material + energyCost + laborCost + ohAllocated;
+    const unitCost = equivQty > 0 ? totalStepCost / equivQty : 0;
+    const finishedCost = unitCost * finishedQty;
+    const wipCost = totalStepCost - finishedCost;
+
+    stepResults.push({
+      name: s.name,
+      transferIn, material: s.material, energy: energyCost, labor: laborCost, oh: ohAllocated,
+      totalStepCost,
+      equivQty: equivQty.toFixed(0),
+      unitCost,
+      finishedCost, wipCost,
+      laborHours: s.laborHours, laborRate: s.laborRate
+    });
+    prevUnitCost = unitCost;
+  });
+
+  // --- Step card transfer display ---
+  stepResults.forEach((r,i) => {
+    if(i===0) return;
+    const card = document.querySelectorAll('.step-transfer')[i-1];
+    if(card) card.innerHTML = `⬆ <strong>上步转入：¥${stepResults[i-1].unitCost.toFixed(4)}/件 × ${finishedQty}件 = ¥${r.transferIn.toLocaleString('zh-CN',{minimumFractionDigits:2})}`;
+  });
+
+  // --- Result table ---
+  document.getElementById('stepResultHead').innerHTML = `
+    <tr><th>项目</th>${stepResults.map((r,i)=>`<th>${r.name}（工序${i+1}）</th>`).join('')}</tr>`;
+  const rows = [
+    {label:'上步转入成本', key:'transferIn', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2}), show:(r,i)=>i>0},
+    {label:'本月直接材料', key:'material', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2})},
+    {label:'本月能源消耗', key:'energy', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2})},
+    {label:'本月直接人工', key:'labor', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2})},
+    {label:'本月制造费用', key:'oh', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2})},
+    {label:'本步成本合计', key:'totalStepCost', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2}), bold:true},
+    {label:'约当产量', key:'equivQty', fmt:v=>v+'件'},
+    {label:'单位成本', key:'unitCost', fmt:v=>'¥'+v.toFixed(4), bold:true},
+    {label:'完工产品成本', key:'finishedCost', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2})},
+    {label:'月末在产品成本', key:'wipCost', fmt:v=>'¥'+v.toLocaleString('zh-CN',{minimumFractionDigits:2})},
+  ];
+  document.getElementById('stepResultBody').innerHTML = rows.map(row => {
+    const cls = row.bold ? ' class="total-row"' : '';
+    return `<tr${cls}><td>${row.label}</td>${stepResults.map((r,i) => {
+      if(row.show && !row.show(r,i)) return '<td>—</td>';
+      return `<td>${row.fmt(r[row.key])}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+
+  // --- Summary ---
+  const last = stepResults[stepResults.length-1];
+  const totalMat = stepResults.reduce((s,r)=>s+r.material,0);
+  const totalEnergy = stepResults.reduce((s,r)=>s+r.energy,0);
+  const totalLabor = stepResults.reduce((s,r)=>s+r.labor,0);
+  const totalOH = stepResults.reduce((s,r)=>s+r.oh,0);
+  document.getElementById('stepSummary').innerHTML = `
+    <div class="summary-card info"><div class="value">¥${last.unitCost.toFixed(4)}</div><div class="label">单位完工成本（每件）</div></div>
+    <div class="summary-card good"><div class="value">¥${last.finishedCost.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div><div class="label">完工产品总成本 (${finishedQty}件)</div></div>
+    <div class="summary-card"><div class="value">¥${last.wipCost.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div><div class="label">月末在产品成本</div></div>
+    <div class="summary-card"><div class="value">¥${totalMat.toLocaleString('zh-CN',{minimumFractionDigits:0})}</div><div class="label">材料成本合计</div></div>
+    <div class="summary-card"><div class="value">¥${totalEnergy.toLocaleString('zh-CN',{minimumFractionDigits:0})}</div><div class="label">能源消耗合计</div></div>
+    <div class="summary-card"><div class="value">¥${totalLabor.toLocaleString('zh-CN',{minimumFractionDigits:0})}</div><div class="label">人工成本合计</div></div>
+    <div class="summary-card"><div class="value">¥${totalOH.toLocaleString('zh-CN',{minimumFractionDigits:0})}</div><div class="label">制造费用合计</div></div>
+    <div class="summary-card" style="background:#fef3c7;border-left-color:#f59e0b"><div class="value">${equivQty.toFixed(0)} 件</div><div class="label">约当产量（完工${finishedQty}+在产${endingWIP}×${(wipPct*100).toFixed(0)}%）</div></div>
+  `;
+
+  // --- Flow viz costs ---
+  stepResults.forEach((r,i) => {
+    const els = document.querySelectorAll('.flow-step .fs-cost');
+    if(els[i]) els[i].textContent = `¥${r.unitCost.toFixed(2)}/件`;
+  });
+}
+
+// ===== STEPS EXCEL UPLOAD =====
+function uploadStepExcel(inputEl) {
+  const file = inputEl.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (!raw.length) { alert('文件为空'); return; }
+
+      // Auto-detect header row
+      const firstRow = raw[0];
+      const hasHeader = firstRow.some(function(c){return isNaN(parseFloat(c)) && String(c).trim().length > 0;});
+      const headers = hasHeader ? firstRow : firstRow.map(function(_,i){return 'Col'+i;});
+      const dataStart = hasHeader ? 1 : 0;
+
+      // Smart map: find column positions by header name
+      const mapping = smartMapColumns(headers);
+      const stepCol = mapping.dept;           // 领用部门/工序
+      const nameCol = mapping.name;            // 物料名称
+      const qtyCol = mapping.qty;              // 实发数量
+      const priceCol = mapping.unitPrice;      // 单价
+      const amtCol = mapping.amount;           // 金额
+      const hrsCol = mapping.laborHours;       // 工时
+      const rateCol = mapping.laborRate;       // 工资率
+
+      // Check if we got enough columns
+      const gotMaterial = nameCol !== undefined && qtyCol !== undefined && priceCol !== undefined;
+      const gotSimple = stepCol !== undefined && amtCol !== undefined;
+
+      const stepMap = new Map();
+      for (let r = dataStart; r < raw.length; r++) {
+        const row = raw[r];
+        if (!row.some(function(c){return c !== '' && c !== null && c !== undefined;})) continue;
+
+        // Step name from dept col or first text col
+        let stepName = '';
+        if (stepCol !== undefined) stepName = String(row[stepCol]||'').trim();
+        if (!stepName) {
+          // Find first text column as fallback
+          for (let c = 0; c < row.length; c++) {
+            const v = String(row[c]||'').trim();
+            if (v && isNaN(parseFloat(v)) && v.length > 1 && c !== nameCol) { stepName = v; break; }
+          }
+        }
+        if (!stepName) stepName = '未命名工序';
+
+        // Extract 4-core fields using mapping
+        const itemName = nameCol !== undefined ? String(row[nameCol]||'').trim() : '';
+        const itemQty = qtyCol !== undefined ? parseFloat(row[qtyCol]) || 0 : 0;
+        const itemPrice = priceCol !== undefined ? parseFloat(row[priceCol]) || 0 : 0;
+        const itemAmt = amtCol !== undefined ? parseFloat(row[amtCol]) || (itemQty * itemPrice) : (itemQty * itemPrice);
+        const lh = hrsCol !== undefined ? parseFloat(row[hrsCol]) || 0 : 0;
+        const lr = rateCol !== undefined ? parseFloat(row[rateCol]) || 35 : 35;
+
+        if (!itemName && !itemQty && !itemPrice && !itemAmt) continue;
+
+        if (!stepMap.has(stepName)) stepMap.set(stepName, {materials:[], energies:[], laborHours: lh||150, laborRate: lr||35, laborMode:'calculated'});
+        const s = stepMap.get(stepName);
+        const isEnergy = /[电能水燃气蒸汽油气煤]/.test(itemName);
+        if (isEnergy) s.energies.push({name:itemName, qty:itemQty, unitPrice:itemPrice});
+        else if (itemName) s.materials.push({name:itemName, qty:itemQty, unitPrice:itemPrice});
+        if (lh) s.laborHours = lh;
+        if (lr) s.laborRate = lr;
+      }
+
+      stepsData = [];
+      stepMap.forEach(function(v, k){
+        if (!v.materials.length) v.materials = [{name:'原材料', qty:100, unitPrice:50}];
+        if (!v.energies || !v.energies.length) v.energies = [{name:'电',qty:300,unitPrice:0.85}];
+        stepsData.push({name:k, materials:v.materials, energies:v.energies, laborMode:'calculated', laborHours:v.laborHours||150, laborRate:v.laborRate||35, laborCost:(v.laborHours||150)*(v.laborRate||35), material:calcSum(v.materials), energy:calcSum(v.energies)});
+      });
+      if (!stepsData.length) { setDefaultSteps(); return; }
+
+      renderStepCards();
+      recalcAll('steps');
+      const okEl = document.getElementById('stepUploadOk');
+      okEl.textContent = '识别 ' + stepsData.length + ' 工序';
+      okEl.classList.remove('hidden');
+      setTimeout(function(){okEl.classList.add('hidden');}, 4000);
+      inputEl.value = '';
+    } catch(err) { alert('文件读取失败：'+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ====== BATCH (B+C) ======
+// batchData[i].mats = [[{name,qty,unitPrice},...], ...] per step
+let batchMatData = [];
+
+function batchStepsChanged(){
+  const n = Math.min(parseInt(document.getElementById('batchSteps').value)||3, 6);
+  // Fix batchMatData for all rows
+  batchMatData.forEach(function(mats, ri){
+    while(mats.length < n) mats.push([{name:'新材料',qty:100,unitPrice:50}]);
+    if(mats.length > n) mats.length = n;
+  });
+}
+
+function renderBatchTable() {
+  const nSteps = Math.min(parseInt(document.getElementById('batchSteps').value) || 3, 6);
+  let headHTML = '<tr><th>#</th><th>产品名称</th><th>产量(件)</th>';
+  for(let i=1;i<=nSteps;i++) {
+    headHTML += `<th>工序${i}材料(¥)</th><th>工序${i}工时(h)</th><th>工序${i}工资率(¥/h)</th>`;
+  }
+  headHTML += `<th>总材料(¥)</th><th>总人工(¥)</th><th>总工时(h)</th><th>分配费用(¥)</th><th>总成本(¥)</th><th>单位成本(¥/件)</th><th></th></tr>`;
+  document.getElementById('batchHead').innerHTML = headHTML;
+
+  // Init batchMatData
+  if(!batchMatData.length) {
+    batchMatData = [
+      [[{name:'不锈钢板',qty:200,unitPrice:180}],[{name:'切削液',qty:50,unitPrice:120}],[{name:'螺栓M8',qty:500,unitPrice:2.5}]],
+      [[{name:'碳钢板',qty:300,unitPrice:45}],[{name:'刀具消耗',qty:200,unitPrice:25}],[{name:'密封圈',qty:300,unitPrice:8}]],
+      [[{name:'铝合金型材',qty:150,unitPrice:85}],[{name:'砂轮片',qty:80,unitPrice:35}],[{name:'润滑脂',qty:40,unitPrice:65}]],
+    ];
+  }
+
+  if(!document.querySelectorAll('#batchBody tr').length) {
+    addBatchProduct('产品A',500, [20000,150,35, 10000,100,40, 8000,80,38]);
+    addBatchProduct('产品B',300, [30000,120,40, 15000,80,45, 6000,60,35]);
+    addBatchProduct('产品C',200, [25000,100,38, 12000,90,35, 10000,70,42]);
+  }
+}
+
+function addBatchProduct(name='',qty='',defaults=[]) {
+  const nSteps = Math.min(parseInt(document.getElementById('batchSteps').value)||3, 6);
+  const tbody = document.getElementById('batchBody');
+  const rowIdx = tbody.rows.length;
+  const row = tbody.insertRow();
+  let html = `<td>${rowIdx+1}</td><td><input class="name-input" value="${name}" placeholder="产品${rowIdx+1}" onchange="recalcAll('products')"></td><td><input type="number" value="${qty}" min="1" style="width:70px" onchange="recalcAll('products')"></td>`;
+  for(let i=0;i<nSteps;i++) {
+    const mat = defaults[i*3] || '';
+    const hrs = defaults[i*3+1] || '';
+    const rate = defaults[i*3+2] || '';
+    html += `<td><input type="number" value="${mat}" step="100" onchange="recalcAll('products')" title="点击下方「展开材料明细」按品名输入"></td>`;
+    html += `<td><input type="number" value="${hrs}" step="0.5" style="width:70px" onchange="recalcAll('products')"></td>`;
+    html += `<td><input type="number" value="${rate}" step="1" style="width:80px" onchange="recalcAll('products')"></td>`;
+  }
+  html += `<td class="total-row"></td><td class="total-row"></td><td class="total-row"></td><td class="total-row"></td><td class="total-row" style="font-weight:700"></td><td class="total-row" style="color:var(--blue);font-weight:700"></td><td><button class="btn btn-danger btn-sm" onclick="removeBatchRow(this,${rowIdx})">×</button></td>`;
+  row.innerHTML = html;
+
+  // Init mat data for this row
+  if(!batchMatData[rowIdx]) {
+    batchMatData[rowIdx] = [];
+    for(let i=0;i<nSteps;i++) batchMatData[rowIdx][i] = [{name:'原材料',qty:100,unitPrice:50}];
+  }
+}
+
+function removeBatchRow(btn, rowIdx) {
+  btn.closest('tr').remove();
+  batchMatData.splice(rowIdx,1);
+  // Re-render to fix indices
+  renderBatchTableFull();
+  recalcAll('products');
+}
+
+function renderBatchTableFull() {
+  // Save current data then re-render
+  const nSteps = Math.min(parseInt(document.getElementById('batchSteps').value)||3, 6);
+  const rows = document.querySelectorAll('#batchBody tr');
+  const saved = [];
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const name = cells[1].querySelector('input')?.value||'';
+    const qty = cells[2].querySelector('input')?.value||'';
+    const defs = [];
+    for(let i=0;i<nSteps;i++){
+      defs.push(cells[3+i*3].querySelector('input')?.value||'');
+      defs.push(cells[4+i*3].querySelector('input')?.value||'');
+      defs.push(cells[5+i*3].querySelector('input')?.value||'');
+    }
+    saved.push({name,qty,defs});
+  });
+  document.getElementById('batchBody').innerHTML = '';
+  batchMatData = [];
+  saved.forEach((s,si)=>{
+    // Rebuild matData from saved or keep old
+    if(!batchMatData[si]) { batchMatData[si] = []; for(let i=0;i<nSteps;i++) batchMatData[si][i] = [{name:'原材料',qty:100,unitPrice:50}]; }
+    addBatchProduct(s.name, parseFloat(s.qty)||100, s.defs);
+  });
+}
+
+function addBatchProducts(n) { for(let i=0;i<n;i++) addBatchProduct(); }
+
+function toggleBatchMatDetail() {
+  const content = document.getElementById('batchMatContent');
+  const toggle = document.getElementById('batchMatToggle');
+  const showing = content.style.display !== 'none';
+  content.style.display = showing ? 'none' : 'block';
+  toggle.textContent = showing ? '▼' : '▲';
+  if(!showing) renderBatchMatDetail();
+}
+
+function renderBatchMatDetail() {
+  const nSteps = Math.min(parseInt(document.getElementById('batchSteps').value)||3, 6);
+  const rows = document.querySelectorAll('#batchBody tr');
+  let html = '';
+  rows.forEach((row, ri) => {
+    const cells = row.querySelectorAll('td');
+    const name = cells[1].querySelector('input')?.value || `产品${ri+1}`;
+    html += `<div style="margin-bottom:16px;border:1px solid var(--gray-200);border-radius:8px;padding:12px"><h3 style="font-size:.9rem;margin-bottom:10px;color:var(--blue)">${name}</h3>`;
+    for(let si=0;si<nSteps;si++) {
+      const mats = (batchMatData[ri]&&batchMatData[ri][si]) ? batchMatData[ri][si] : [{name:'原材料',qty:100,unitPrice:50}];
+      // Sync total from detail to the per-step material input
+      const totalStepMat = mats.reduce((s,m)=>s+(m.qty||0)*(m.unitPrice||0),0);
+      const stepMatInput = cells[3+si*3].querySelector('input');
+      if(stepMatInput && totalStepMat > 0) stepMatInput.value = totalStepMat;
+
+      html += `<div style="margin-bottom:8px"><span style="font-weight:700;font-size:.82rem;color:var(--gray-700)">工序${si+1} 材料</span>`;
+      html += `<table class="mat-sub-table" style="margin-top:4px"><thead><tr><th>品名</th><th>用量</th><th>单价(¥)</th><th>金额(¥)</th><th></th></tr></thead><tbody>`;
+      mats.forEach((m,mi)=>{
+        html += `<tr>
+          <td><input class="name-input" value="${m.name||''}" placeholder="材料" onchange="batchUpdateMat(${ri},${si},${mi},'name',this.value)"></td>
+          <td><input class="qty-input" type="number" value="${m.qty||''}" step="1" min="0" onchange="batchUpdateMat(${ri},${si},${mi},'qty',+this.value)"></td>
+          <td><input class="price-input" type="number" value="${m.unitPrice||''}" step="0.01" min="0" onchange="batchUpdateMat(${ri},${si},${mi},'unitPrice',+this.value)"></td>
+          <td style="font-weight:600;color:var(--blue)">¥${((m.qty||0)*(m.unitPrice||0)).toLocaleString()}</td>
+          <td style="text-align:center"><button class="btn btn-danger btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="batchRemoveMat(${ri},${si},${mi})">×</button></td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+      html += `<a class="add-mat-link" onclick="batchAddMat(${ri},${si});renderBatchMatDetail();">+ 添加材料</a>`;
+      html += `<div class="mat-total">工序${si+1}材料合计 <span class="total-amt">¥${totalStepMat.toLocaleString()}</span></div></div>`;
+    }
+    html += `</div>`;
+  });
+  document.getElementById('batchMatContent').innerHTML = html || '<p style="color:var(--gray-500);text-align:center">暂无产品数据</p>';
+}
+
+function batchUpdateMat(ri, si, mi, field, value) {
+  if(!batchMatData[ri]) batchMatData[ri] = [];
+  if(!batchMatData[ri][si]) batchMatData[ri][si] = [{name:'原材料',qty:100,unitPrice:50}];
+  batchMatData[ri][si][mi][field] = value;
+  renderBatchMatDetail();
+  // Also update the step material total in the main table
+  const total = batchMatData[ri][si].reduce((s,m)=>s+(m.qty||0)*(m.unitPrice||0),0);
+  const row = document.querySelectorAll('#batchBody tr')[ri];
+  if(row){
+    const cells = row.querySelectorAll('td');
+    cells[3+si*3].querySelector('input').value = total;
+  }
+}
+function batchAddMat(ri, si) {
+  if(!batchMatData[ri]) batchMatData[ri] = [];
+  if(!batchMatData[ri][si]) batchMatData[ri][si] = [];
+  batchMatData[ri][si].push({name:'新材料',qty:1,unitPrice:10});
+}
+function batchRemoveMat(ri, si, mi) {
+  batchMatData[ri][si].splice(mi,1);
+  if(!batchMatData[ri][si].length) batchMatData[ri][si] = [{name:'原材料',qty:1,unitPrice:10}];
+  renderBatchMatDetail();
+}
+
+function recalcProducts() {
+  const nSteps = Math.min(parseInt(document.getElementById('batchSteps').value)||3, 6);
+  const ohTotal = +document.getElementById('batchOH').value || 0;
+  const ohMethod = document.getElementById('batchOHMethod').value;
+  const rows = document.querySelectorAll('#batchBody tr');
+
+  // First pass: collect totals for OH allocation
+  let grandTotalBase = 0;
+  const rowData = [];
+  rows.forEach((row,ri) => {
+    const cells = row.querySelectorAll('td');
+    const name = cells[1].querySelector('input')?.value || '';
+    const qty = parseFloat(cells[2].querySelector('input')?.value) || 1;
+    let totalMat = 0, totalLabor = 0, totalHours = 0;
+    const stepMats=[], stepHours=[], stepRates=[];
+    for(let i=0;i<nSteps;i++){
+      // If batchMatData exists for this step, use sum of materials
+      let matVal = parseFloat(cells[3+i*3].querySelector('input')?.value) || 0;
+      if(batchMatData[ri] && batchMatData[ri][i]) {
+        matVal = batchMatData[ri][i].reduce((s,m)=>s+(m.qty||0)*(m.unitPrice||0),0);
+        cells[3+i*3].querySelector('input').value = matVal;
+      }
+      const hrs = parseFloat(cells[4+i*3].querySelector('input')?.value) || 0;
+      const rate = parseFloat(cells[5+i*3].querySelector('input')?.value) || 0;
+      stepMats.push(matVal); stepHours.push(hrs); stepRates.push(rate);
+      totalMat += matVal;
+      totalLabor += hrs * rate;
+      totalHours += hrs;
+    }
+    let base = ohMethod==='labor_hours' ? totalHours : totalLabor;
+    grandTotalBase += base;
+    rowData.push({row, name, qty, stepMats, stepHours, stepRates, totalMat, totalLabor, totalHours, base, ri});
+  });
+
+  // Second pass: allocate OH and calculate
+  let grandTotal = 0, grandQty = 0;
+  rowData.forEach((rd,i) => {
+    const ohAllocated = grandTotalBase ? ohTotal * rd.base / grandTotalBase : 0;
+    const totalCost = rd.totalMat + rd.totalLabor + ohAllocated;
+    const unitCost = rd.qty > 0 ? totalCost / rd.qty : 0;
+    grandTotal += totalCost;
+    grandQty += rd.qty;
+
+    const cells = rd.row.querySelectorAll('td');
+    const startTotalCol = 3 + nSteps * 3;
+    cells[startTotalCol].textContent = '¥'+rd.totalMat.toLocaleString();
+    cells[startTotalCol+1].textContent = '¥'+rd.totalLabor.toLocaleString();
+    cells[startTotalCol+2].textContent = rd.totalHours.toFixed(0)+'h';
+    cells[startTotalCol+3].textContent = '¥'+ohAllocated.toFixed(0);
+    cells[startTotalCol+4].textContent = '¥'+totalCost.toLocaleString();
+    cells[startTotalCol+5].textContent = '¥'+unitCost.toFixed(2);
+  });
+
+  // Refresh material detail if visible
+  if(document.getElementById('batchMatContent')?.style.display !== 'none') renderBatchMatDetail();
+
+  // Summary
+  document.getElementById('batchSummary').innerHTML = `
+    <div class="summary-card info"><div class="value">¥${grandTotal.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div><div class="label">总生产成本</div></div>
+    <div class="summary-card good"><div class="value">¥${grandQty>0?(grandTotal/grandQty).toFixed(2):'0.00'}</div><div class="label">加权平均单位成本 (${grandQty}件)</div></div>
+    <div class="summary-card"><div class="value">${rows.length}</div><div class="label">产品数量</div></div>
+    <div class="summary-card"><div class="value">${nSteps}</div><div class="label">工序数</div></div>
+    <div class="summary-card"><div class="value">¥${ohTotal.toLocaleString()}</div><div class="label">制造费用总额</div></div>
+  `;
+}
+
+// ===== PRODUCT EXCEL UPLOAD =====
+function uploadProductExcel(inputEl) {
+  const file = inputEl.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      document.getElementById('batchBody').innerHTML = '';
+      let added = 0;
+      for(const row of data){
+        if(!row[0] && !row[1]) continue;
+        const name = String(row[0]||'').trim() || `产品${added+1}`;
+        const qty = parseFloat(row[1]) || 100;
+        const defaults = [];
+        for(let i=2;i<row.length;i++) defaults.push(parseFloat(row[i])||0);
+        addBatchProduct(name, qty, defaults);
+        added++;
+      }
+      if(!added) addBatchProducts(3);
+      recalcAll('products');
+      const okEl = document.getElementById('prodUploadOk');
+      okEl.textContent = `已加载 ${added} 个产品`;
+      okEl.classList.remove('hidden');
+      setTimeout(()=>okEl.classList.add('hidden'), 4000);
+      inputEl.value = '';
+    } catch(err){ alert('文件读取失败：'+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ===== EXPORT =====
+function exportBatch(){
+  const rows = document.querySelectorAll('#batchBody tr');
+  if(!rows.length){alert('无数据');return;}
+  const nSteps = Math.min(parseInt(document.getElementById('batchSteps').value)||3, 6);
+  const data = [];
+  rows.forEach((row,i) => {
+    const cells = row.querySelectorAll('td');
+    const obj = {序号:i+1,产品名称:cells[1].querySelector('input')?.value||'',产量:cells[2].querySelector('input')?.value||''};
+    for(let j=0;j<nSteps;j++){
+      obj[`工序${j+1}材料`] = cells[3+j*3].querySelector('input')?.value||'';
+      obj[`工序${j+1}工时`] = cells[4+j*3].querySelector('input')?.value||'';
+      obj[`工序${j+1}工资率`] = cells[5+j*3].querySelector('input')?.value||'';
+    }
+    const sc = 3+nSteps*3;
+    obj.总材料 = cells[sc].textContent; obj.总人工 = cells[sc+1].textContent;
+    obj.总工时 = cells[sc+2].textContent; obj.分配费用 = cells[sc+3].textContent;
+    obj.总成本 = cells[sc+4].textContent; obj.单位成本 = cells[sc+5].textContent;
+    data.push(obj);
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'产品成本归集');
+  XLSX.writeFile(wb,`产品成本归集_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ===== INIT =====
+setDefaultSteps();
+renderBatchTable();
+recalcAll('steps');
+recalcAll('products');
+</script>
+</body>
+</html>
