@@ -287,21 +287,54 @@ function extractRow(row, mapping) {
 
 // ====== EXCEL UPLOAD ======
 function uploadExpenseExcel(inputEl) {
-  const file = inputEl.files[0];
+  var file = inputEl.files[0];
   if(!file) return;
-  const reader = new FileReader();
+  var reader = new FileReader();
   reader.onload = function(e){
     try {
-      const wb = XLSX.read(e.target.result, {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const csv = XLSX.utils.sheet_to_csv(ws, {FS:'\t', blankrows:false, strip:true});
-      document.getElementById('rawInput').value = csv;
-      const rowCount = csv.split('\n').filter(l=>l.trim()).length;
-      const okEl = document.getElementById('expOk');
-      okEl.textContent = '已加载 '+rowCount+' 行';
+      var wb = XLSX.read(e.target.result, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (!raw.length) { alert('文件为空'); return; }
+
+      var firstRow = raw[0];
+      var hasHeader = firstRow.some(function(c){return isNaN(parseFloat(c)) && String(c).trim().length > 0;});
+      var headers = hasHeader ? firstRow : firstRow.map(function(_,i){return 'Col'+i;});
+      var dataStart = hasHeader ? 1 : 0;
+
+      // Smart map: date, amount, desc + extras as full text
+      var mapping = smartMapColumns(headers);
+      var dateCol = mapping.date;
+      var amtCol = mapping.amount;
+      var nameCol = mapping.name;
+
+      var lines = [];
+      for (var r = dataStart; r < raw.length; r++) {
+        var row = raw[r];
+        if (!row.some(function(c){return c !== '' && c !== null && c !== undefined;})) continue;
+        var date = dateCol !== undefined ? String(row[dateCol]||'').trim() : '';
+        var amt = amtCol !== undefined ? parseFloat(row[amtCol]) || 0 : 0;
+        var desc = nameCol !== undefined ? String(row[nameCol]||'').trim() : '';
+        if (!desc && !amt) continue;
+        var extras = [];
+        for (var i=0; i<row.length; i++) {
+          if (i===dateCol || i===amtCol || i===nameCol) continue;
+          var v = String(row[i]||'').trim();
+          if (v && v.length < 60) extras.push(v);
+        }
+        var fullDesc = desc + (extras.length ? ' ' + extras.join(' ') : '');
+        lines.push(date + '	' + amt + '	' + fullDesc);
+      }
+
+      document.getElementById('rawInput').value = lines.join('
+');
+      var okEl = document.getElementById('expOk');
+      okEl.textContent = '识别 ' + lines.length + ' 行 (日期+金额+摘要)';
       okEl.classList.remove('hidden');
-      setTimeout(() => okEl.classList.add('hidden'), 4000);
+      setTimeout(function(){ okEl.classList.add('hidden'); }, 4000);
       parseCount();
+      // Auto-classify
+      classify();
       inputEl.value = '';
     } catch(err) {
       alert('文件读取失败：'+err.message);
@@ -309,7 +342,6 @@ function uploadExpenseExcel(inputEl) {
   };
   reader.readAsArrayBuffer(file);
 }
-
 function renderCatChips() {
   const cats = new Map();
   entries.forEach(e => { const c = e.overrideCat || e.matchedCat; if(c) cats.set(c, (cats.get(c)||0) + (e.amount||0)); });

@@ -411,36 +411,44 @@ function extractRow(row, mapping) {
 
 // ===== EXCEL UPLOAD =====
 function uploadFile(inputEl, targetId, okId) {
-  const file = inputEl.files[0];
+  var file = inputEl.files[0];
   if (!file) return;
-
-  const reader = new FileReader();
+  var reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const wb = XLSX.read(e.target.result, {type:'array'});
-      const sheetName = wb.SheetNames[0];
-      const ws = wb.Sheets[sheetName];
-      // Convert to tab-separated text (preserves all columns)
-      const csv = XLSX.utils.sheet_to_csv(ws, {FS:'\t', blankrows:false, strip:true});
-      document.getElementById(targetId).value = csv;
+      var wb = XLSX.read(e.target.result, {type:'array'});
+      var sheetNames = wb.SheetNames;
 
-      // Show success indicator
-      const okEl = document.getElementById(okId);
-      const rowCount = csv.split('\n').filter(l=>l.trim()).length;
-      okEl.textContent = `已加载 ${rowCount} 行`;
-      okEl.classList.remove('hidden');
-      setTimeout(() => okEl.classList.add('hidden'), 4000);
-
-      // Clear file input so same file can be re-uploaded
+      if (sheetNames.length >= 2 && (sheetNames[0].indexOf('标准')>=0 || sheetNames[1].indexOf('实际')>=0)) {
+        ['standardInput','actualInput'].forEach(function(id, idx){
+          if (idx < sheetNames.length) {
+            var csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetNames[idx]], {FS:'	', blankrows:false, strip:true});
+            document.getElementById(id).value = csv;
+          }
+        });
+        var totalRows = 0;
+        sheetNames.forEach(function(sn){
+          var lines = XLSX.utils.sheet_to_csv(wb.Sheets[sn], {FS:'	', blankrows:false, strip:true});
+          totalRows += lines.split('
+').filter(function(l){return l.trim();}).length;
+        });
+        document.getElementById(okId).textContent = '双Sheet '+totalRows+'行 (标准+实际)';
+      } else {
+        var csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetNames[0]], {FS:'	', blankrows:false, strip:true});
+        document.getElementById(targetId).value = csv;
+        var rowCount = csv.split('
+').filter(function(l){return l.trim();}).length;
+        document.getElementById(okId).textContent = rowCount + ' 行';
+      }
+      document.getElementById(okId).classList.remove('hidden');
+      setTimeout(function(){ document.getElementById(okId).classList.add('hidden'); }, 4000);
       inputEl.value = '';
     } catch(err) {
-      alert('文件读取失败：' + err.message + '\n\n请确认是 .xlsx / .xls / .csv 格式。');
+      alert('文件读取失败：' + err.message);
     }
   };
   reader.readAsArrayBuffer(file);
 }
-
-// ===== TAB =====
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => {
     t.classList.toggle('active',
