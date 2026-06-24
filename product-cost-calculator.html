@@ -191,6 +191,9 @@ td input.qty-input{text-align:right;width:80px;margin:0 auto}
         <button class="btn btn-outline btn-sm" onclick="addBatchRow()">+ 添加产品</button>
         <button class="btn btn-outline btn-sm" onclick="addBatchRows(5)">+5行</button>
         <label class="upload-btn" style="margin-left:8px"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadBatchExcel(this)"> 上传Excel</label>
+        <span style="font-size:.78rem;color:var(--gray-500);margin-left:8px">
+          <a href="模板_多产品成本归集表.xlsx" download style="color:var(--blue);font-weight:600;text-decoration:underline">下载模板</a>
+        </span>
         <span class="upload-ok hidden" id="batchOk"></span>
         <button class="btn btn-primary btn-sm" onclick="exportBatch()">导出Excel</button>
       </div>
