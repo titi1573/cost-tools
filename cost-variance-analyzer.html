@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>成本差异分析器 | 标准成本 vs 实际成本 | 一键导出Excel</title>
 <meta name="description" content="成本会计工具：粘贴标准成本与实际成本，自动计算价格差异、用量差异、总差异。支持Excel粘贴、自动匹配品名、红标超预算、导出分析报告。">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="xlsx.full.min.js"></script>
 <style>
 :root{--blue:#3b82f6;--blue-bg:#eff6ff;--red:#ef4444;--red-bg:#fef2f2;--green:#16a34a;--green-bg:#f0fdf4;--amber:#d97706;--amber-bg:#fffbeb;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -416,39 +416,29 @@ function uploadFile(inputEl, targetId, okId) {
   var reader = new FileReader();
   reader.onload = function(e) {
     try {
-      var wb = XLSX.read(e.target.result, {type:'array'});
-      var sheetNames = wb.SheetNames;
-
-      if (sheetNames.length >= 2 && (sheetNames[0].indexOf('标准')>=0 || sheetNames[1].indexOf('实际')>=0)) {
-        ['standardInput','actualInput'].forEach(function(id, idx){
-          if (idx < sheetNames.length) {
-            var csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetNames[idx]], {FS:'	', blankrows:false, strip:true});
-            document.getElementById(id).value = csv;
-          }
-        });
-        var totalRows = 0;
-        sheetNames.forEach(function(sn){
-          var lines = XLSX.utils.sheet_to_csv(wb.Sheets[sn], {FS:'	', blankrows:false, strip:true});
-          totalRows += lines.split('
-').filter(function(l){return l.trim();}).length;
-        });
-        document.getElementById(okId).textContent = '双Sheet '+totalRows+'行 (标准+实际)';
+      var wb = XLSX.read(e.target.result, {type: "array"});
+      var names = wb.SheetNames;
+      if (names.length >= 2) {
+        var csv0 = XLSX.utils.sheet_to_csv(wb.Sheets[names[0]], {FS: "\t", blankrows: false, strip: true});
+        var csv1 = XLSX.utils.sheet_to_csv(wb.Sheets[names[1]], {FS: "\t", blankrows: false, strip: true});
+        document.getElementById("standardInput").value = csv0;
+        document.getElementById("actualInput").value = csv1;
+        document.getElementById(okId).textContent = names[0] + "+" + names[1] + " 已加载";
       } else {
-        var csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetNames[0]], {FS:'	', blankrows:false, strip:true});
+        var csv = XLSX.utils.sheet_to_csv(wb.Sheets[names[0]], {FS: "\t", blankrows: false, strip: true});
         document.getElementById(targetId).value = csv;
-        var rowCount = csv.split('
-').filter(function(l){return l.trim();}).length;
-        document.getElementById(okId).textContent = rowCount + ' 行';
+        document.getElementById(okId).textContent = names[0] + " 已加载";
       }
-      document.getElementById(okId).classList.remove('hidden');
-      setTimeout(function(){ document.getElementById(okId).classList.add('hidden'); }, 4000);
-      inputEl.value = '';
+      document.getElementById(okId).classList.remove("hidden");
+      setTimeout(function(){ document.getElementById(okId).classList.add("hidden"); }, 4000);
+      inputEl.value = "";
     } catch(err) {
-      alert('文件读取失败：' + err.message);
+      alert("文件读取失败：" + err.message);
     }
   };
   reader.readAsArrayBuffer(file);
 }
+
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => {
     t.classList.toggle('active',
