@@ -108,16 +108,13 @@ td .cat-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:
     <div class="cat-chips" id="catChips"></div>
     <div class="grid-2">
       <div>
-        <div class="paste-zone" id="pasteZone" onclick="document.getElementById('rawInput').focus()">
-          <div style="font-size:2rem;margin-bottom:8px">📋</div>
-          <div>粘贴报销数据（从Excel / 微信 / 表格直接粘贴），或上传Excel文件</div>
-          <div style="font-size:.8rem;margin-top:8px">
-            <label class="upload-btn" style="cursor:pointer" onclick="event.stopPropagation()">
-              <input type="file" accept=".xlsx,.xls,.csv" onchange="uploadExpenseExcel(this)">
-              上传Excel文件
-            </label>
-            <span class="upload-ok hidden" id="expOk" style="margin-left:8px"></span>
-            <a href="模板_费用报销明细表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:8px;display:inline-flex;align-items:center;gap:2px">下载模板</a>
+        <div style="border:2px dashed #cbd5e0;border-radius:8px;padding:18px 20px;text-align:center;color:#a0aec0;margin-bottom:12px;background:#fafbfc">
+          <div style="font-size:2rem;margin-bottom:6px">📋</div>
+          <div style="margin-bottom:8px">粘贴报销数据，或上传Excel文件自动填写</div>
+          <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap">
+            <label class="upload-btn" style="margin:0"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadExpenseExcel(this)"> 上传Excel文件</label>
+            <span class="upload-ok hidden" id="expOk" style="margin-left:4px"></span>
+            <a href="模板_费用报销明细表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:4px">下载模板</a>
           </div>
         </div>
         <textarea id="rawInput" placeholder="每行一条费用记录。格式灵活：
