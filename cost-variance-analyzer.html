@@ -414,26 +414,39 @@ function uploadFile(inputEl, targetId, okId) {
   var file = inputEl.files[0];
   if (!file) return;
   var reader = new FileReader();
+  reader.onerror = function(e) {
+    alert("文件读取失败，请重试。");
+  };
   reader.onload = function(e) {
     try {
-      var wb = XLSX.read(e.target.result, {type: "array"});
+      var data = new Uint8Array(e.target.result);
+      var wb = XLSX.read(data, {type: "array"});
       var names = wb.SheetNames;
-      if (names.length >= 2) {
+      var n = names.length;
+
+      if (n >= 2) {
         var csv0 = XLSX.utils.sheet_to_csv(wb.Sheets[names[0]], {FS: "\t", blankrows: false, strip: true});
         var csv1 = XLSX.utils.sheet_to_csv(wb.Sheets[names[1]], {FS: "\t", blankrows: false, strip: true});
         document.getElementById("standardInput").value = csv0;
         document.getElementById("actualInput").value = csv1;
-        document.getElementById(okId).textContent = names[0] + "+" + names[1] + " 已加载";
+        document.getElementById("stdOk").textContent = names[0] + "(" + csv0.split(/\r?\n/).filter(function(l){return l.trim();}).length + "行)";
+        document.getElementById("actOk").textContent = names[1] + "(" + csv1.split(/\r?\n/).filter(function(l){return l.trim();}).length + "行)";
+        document.getElementById("stdOk").classList.remove("hidden");
+        document.getElementById("actOk").classList.remove("hidden");
+        setTimeout(function(){
+          document.getElementById("stdOk").classList.add("hidden");
+          document.getElementById("actOk").classList.add("hidden");
+        }, 5000);
       } else {
         var csv = XLSX.utils.sheet_to_csv(wb.Sheets[names[0]], {FS: "\t", blankrows: false, strip: true});
         document.getElementById(targetId).value = csv;
-        document.getElementById(okId).textContent = names[0] + " 已加载";
+        document.getElementById(okId).textContent = names[0] + "(" + csv.split(/\r?\n/).filter(function(l){return l.trim();}).length + "行)";
+        document.getElementById(okId).classList.remove("hidden");
+        setTimeout(function(){ document.getElementById(okId).classList.add("hidden"); }, 5000);
       }
-      document.getElementById(okId).classList.remove("hidden");
-      setTimeout(function(){ document.getElementById(okId).classList.add("hidden"); }, 4000);
       inputEl.value = "";
     } catch(err) {
-      alert("文件读取失败：" + err.message);
+      alert("文件解析失败：" + err.message + "\n请确认是 .xlsx/.xls/.csv 格式。");
     }
   };
   reader.readAsArrayBuffer(file);
