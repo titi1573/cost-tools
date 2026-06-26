@@ -112,7 +112,10 @@ td .cat-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:
           <div style="font-size:2rem;margin-bottom:8px">📋</div>
           <div>粘贴报销数据（从Excel / 微信 / 表格直接粘贴），或上传Excel文件</div>
           <div style="font-size:.8rem;margin-top:8px">
-            <label class="upload-btn" onclick="event.stopPropagation()"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadExpenseExcel(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"> 上传Excel文件</label>
+            <label class="upload-btn" style="cursor:pointer" onclick="event.stopPropagation()">
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="uploadExpenseExcel(this)">
+              上传Excel文件
+            </label>
             <span class="upload-ok hidden" id="expOk" style="margin-left:8px"></span>
             <a href="模板_费用报销明细表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:8px;display:inline-flex;align-items:center;gap:2px">下载模板</a>
           </div>
