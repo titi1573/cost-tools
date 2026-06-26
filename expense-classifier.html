@@ -3,549 +3,340 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>费用报销自动分类器 | Expense Auto-Classifier</title>
+<title>费用报销自动分类器</title>
 <script src="xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f0f4f8;color:#1a202c;line-height:1.6}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f1f5f9;color:#1a202c;line-height:1.6}
 .container{max-width:1400px;margin:0 auto;padding:20px}
-h1{font-size:1.8rem;color:#2d3748;margin-bottom:4px}
-.subtitle{color:#718096;margin-bottom:20px;font-size:.9rem}
+h1{font-size:1.8rem;color:#1e3a5f;margin-bottom:4px}
+.subtitle{color:#6b7280;margin-bottom:20px;font-size:.9rem}
 
-.section{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.section h2{font-size:1.1rem;color:#2d3748;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px}
+.section{background:#fff;border-radius:14px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid #e5e7eb}
+.section h2{font-size:1.1rem;color:#1e3a5f;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.hero{background:linear-gradient(135deg,#1e3a5f,#7c3aed);border-radius:14px;padding:28px 28px 22px;color:#fff;margin-bottom:20px}
+.hero h1{font-size:1.8rem;color:#fff}
+.badges{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.15);padding:5px 14px;border-radius:20px;font-size:.78rem}
 
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
 
-/* Category chips */
-.cat-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.cat-chip{padding:6px 14px;border-radius:20px;font-size:.82rem;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;position:relative}
-.cat-chip:hover{transform:translateY(-1px)}
-.cat-chip.active{box-shadow:0 0 0 2px rgba(66,153,225,.4)}
-.cat-chip .count{font-size:.7rem;opacity:.7;margin-left:2px}
+.paste-box{border:2px dashed #cbd5e0;border-radius:10px;padding:20px;text-align:center;color:#9ca3af;margin-bottom:12px;background:#fafbfc}
+textarea{width:100%;height:180px;font-family:"SF Mono",Consolas,monospace;font-size:.84rem;padding:14px;border:2px solid #e5e7eb;border-radius:10px;resize:vertical;line-height:1.7;background:#f9fafb}
+textarea:focus{outline:none;border-color:#3b82f6;background:#fff}
 
-/* Category colors */
-.cat-A{background:#ebf8ff;color:#2b6cb0}.cat-A.active{border-color:#4299e1}
-.cat-B{background:#faf5ff;color:#6b46c1}.cat-B.active{border-color:#9f7aea}
-.cat-C{background:#fff5f5;color:#c53030}.cat-C.active{border-color:#fc8181}
-.cat-D{background:#f0fff4;color:#276749}.cat-D.active{border-color:#48bb78}
-.cat-E{background:#fffbeb;color:#975a16}.cat-E.active{border-color:#ecc94b}
-.cat-F{background:#fff5f5;color:#9b2c2c}.cat-F.active{border-color:#f56565}
-.cat-G{background:#f7fafc;color:#4a5568}.cat-G.active{border-color:#a0aec0}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:none;border-radius:8px;font-size:.85rem;cursor:pointer;font-weight:600;transition:all .15s}
+.btn-primary{background:#3b82f6;color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-success{background:#16a34a;color:#fff}.btn-success:hover{background:#15803d}
+.btn-outline{background:#fff;color:#3b82f6;border:1.5px solid #3b82f6}.btn-outline:hover{background:#eff6ff}
+.btn-danger{background:#fee2e2;color:#991b1b}.btn-danger:hover{background:#fecaca}
+.btn-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center}
 
-/* Input area */
-textarea{width:100%;height:180px;font-family:"SF Mono",Consolas,monospace;font-size:.85rem;padding:14px;border:2px solid #e2e8f0;border-radius:8px;resize:vertical;transition:border-color .2s;line-height:1.7}
-textarea:focus{outline:none;border-color:#4299e1}
-textarea::placeholder{color:#a0aec0}
-.paste-zone{border:2px dashed #cbd5e0;border-radius:8px;padding:24px;text-align:center;color:#a0aec0;cursor:pointer;transition:all .2s;margin-bottom:12px;background:#fafbfc}
-.paste-zone:hover{border-color:#4299e1;background:#f7fafc}
-.paste-zone.dragover{border-color:#4299e1;background:#ebf8ff}
-
-/* Quick fill */
-.quick-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-.quick-row input{flex:1;min-width:120px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:.85rem}
-.quick-row input:focus{outline:none;border-color:#4299e1}
-
-/* Table */
-table{width:100%;border-collapse:collapse;font-size:.85rem}
-th,td{padding:9px 10px;text-align:left;border-bottom:1px solid #e2e8f0}
-th{background:#f7fafc;color:#4a5568;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0;z-index:1}
-td.num{text-align:right}
-tr:hover{background:#f7fafc}
-tr.flagged{background:#fff5f5}
-tr.flagged td:first-child{border-left:3px solid #fc8181}
-td .cat-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:700;white-space:nowrap}
-.unmatched{color:#e53e3e;font-size:.75rem}
-
-/* Summary */
-.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
-.summary-card{background:#f7fafc;border-radius:8px;padding:14px;text-align:center;border-left:3px solid transparent}
-.summary-card .value{font-size:1.4rem;font-weight:700;color:#2d3748}
-.summary-card .label{font-size:.78rem;color:#718096;margin-top:2px}
-
-/* Category summary table */
-.cat-summary{width:auto;min-width:500px;font-size:.85rem}
-.cat-summary td{padding:6px 12px}
-.cat-summary .bar-wrap{width:120px;height:8px;background:#edf2f7;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle}
-.cat-summary .bar-fill{height:100%;border-radius:4px;transition:width .3s}
-
-/* Button */
-.btn-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-.btn{padding:8px 20px;border:none;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .15s}
-.btn-sm{padding:5px 12px;font-size:.8rem}
-.btn-primary{background:#4299e1;color:#fff}.btn-primary:hover{background:#3182ce}
-.btn-outline{background:#fff;color:#4299e1;border:1.5px solid #4299e1}.btn-outline:hover{background:#ebf8ff}
-.btn-success{background:#48bb78;color:#fff}.btn-success:hover{background:#38a169}
-.btn-warn{background:#edf2f7;color:#4a5568}.btn-warn:hover{background:#e2e8f0}
-
-/* Rule editor */
-.rule-section{background:#fafbfc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-top:12px}
-.rule-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.rule-row input{padding:6px 10px;border:1px solid #e2e8f0;border-radius:4px;font-size:.85rem;min-width:100px}
-.rule-row select{padding:6px 10px;border:1px solid #e2e8f0;border-radius:4px;font-size:.85rem}
-
-.pie-container{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.pie-chart{width:180px;height:180px;border-radius:50%;position:relative}
-.pie-legend{display:flex;flex-direction:column;gap:4px}
-
-.empty{text-align:center;padding:48px;color:#a0aec0}
-.hidden{display:none!important}
-.upload-btn{position:relative;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#eff6ff;color:#3b82f6;border:1px dashed #3b82f6;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600;transition:all .15s}
+.upload-btn{position:relative;display:inline-flex;align-items:center;gap:4px;padding:8px 16px;background:#eff6ff;color:#3b82f6;border:1px dashed #3b82f6;border-radius:8px;font-size:.84rem;cursor:pointer;font-weight:600}
 .upload-btn:hover{background:#dbeafe;border-style:solid}
-.upload-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-.upload-ok{color:#16a34a;font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.status{font-size:.78rem;font-weight:600;color:#16a34a;margin-left:4px}
+
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid #e5e7eb}
+th{background:#f9fafb;color:#4a5568;font-weight:700;font-size:.75rem;position:sticky;top:0;z-index:1}
+td.num{text-align:right}
+tr:hover{background:#f9fafb}
+.cat-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:700}
+.bg-A{background:#dbeafe;color:#1e40af}.bg-B{background:#f3e8ff;color:#6b21a8}
+.bg-C{background:#fee2e2;color:#991b1b}.bg-D{background:#dcfce7;color:#166534}
+.bg-E{background:#fef3c7;color:#92400e}.bg-F{background:#ffedd5;color:#9a3412}
+.bg-G{background:#e5e7eb;color:#374151}.bg-H{background:#fce7f3;color:#9d174d}
+.bg-X{background:#f3f4f6;color:#6b7280}
+
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.summary-card{background:#f9fafb;border-radius:10px;padding:14px;text-align:center;border-left:3px solid transparent}
+.summary-card .value{font-size:1.3rem;font-weight:800}
+.summary-card .label{font-size:.76rem;color:#6b7280;margin-top:2px}
+
+.pie-box{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:14px}
+.pie{width:160px;height:160px;border-radius:50%}
+.legend{display:flex;flex-direction:column;gap:4px;font-size:.84rem}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+.cat-summary td{padding:6px 12px}
+.cat-summary .bar{width:100px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.cat-summary .bar-fill{height:100%;border-radius:3px}
+
+.rule-section{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-top:10px}
+.rule-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.rule-row select,.rule-row input{padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:.84rem}
+.rule-row input{flex:2;min-width:150px}
+
+.hidden{display:none!important}
+.footer{text-align:center;padding:20px;color:#9ca3af;font-size:.76rem}
 </style>
 </head>
 <body>
 <div class="container">
+<div class="hero">
   <h1>费用报销自动分类器</h1>
-  <p class="subtitle">粘贴报销明细 → 自动按关键词归入会计科目 → 汇总分析 → 导出分类表</p>
+  <p style="opacity:.85;margin-top:4px">粘贴报销明细或上传Excel → 自动按关键词归入会计科目 → 汇总分析 → 导出分类表</p>
+  <div class="badges">
+    <span class="badge">12个会计科目</span><span class="badge">150+关键词</span><span class="badge">纯本地运行</span>
+  </div>
+</div>
 
-  <!-- INPUT -->
+<div class="section">
+  <h2>数据输入</h2>
+  <div class="grid-2">
+    <div>
+      <div class="paste-box">
+        <div style="font-size:2rem;margin-bottom:6px">📋</div>
+        <div style="margin-bottom:6px">粘贴报销数据，或上传Excel文件自动填写</div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap">
+          <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="handleUpload(this)"> 上传Excel文件</label>
+          <span class="status hidden" id="status"></span>
+          <a href="模板_费用报销明细表.xlsx" download style="font-size:.78rem;color:#3b82f6;font-weight:600;text-decoration:underline">下载模板</a>
+        </div>
+      </div>
+      <textarea id="rawInput" placeholder="每行一条费用记录。格式灵活，系统自动识别金额列。&#10;&#10;示例：&#10;2024-03-15	358.00	A4纸 墨盒	行政部&#10;03.16	1200.00	服务器租用费	技术部&#10;2024-03-18	186.50	滴滴打车 拜访客户	销售部-张三"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="doClassify()">自动分类</button>
+        <button class="btn btn-outline" onclick="clearAll()">清空</button>
+        <span style="font-size:.82rem;color:#6b7280;margin-left:auto">已解析 <strong id="parseCount">0</strong> 条</span>
+      </div>
+    </div>
+    <div>
+      <div class="rule-section">
+        <div style="font-weight:700;font-size:.85rem;color:#374151;margin-bottom:8px">分类规则（可自定义）</div>
+        <div style="font-size:.75rem;color:#9ca3af;margin-bottom:8px">关键词命中即归入对应科目。多个关键词用逗号分隔。</div>
+        <div id="ruleBody"></div>
+        <button class="btn btn-outline" style="font-size:.78rem;padding:5px 12px" onclick="addRule()">+ 添加规则</button>
+        <button class="btn" style="font-size:.78rem;padding:5px 12px;background:#f3f4f6;color:#4a5568;margin-left:8px" onclick="resetRules()">恢复默认</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="resultArea" class="hidden">
   <div class="section">
-    <h2>数据输入</h2>
-    <div class="cat-chips" id="catChips"></div>
-    <div class="grid-2">
-      <div>
-        <div class="paste-zone" id="pasteZone">
-          <div style="font-size:2rem;margin-bottom:8px">📋</div>
-          <div>粘贴报销数据（从Excel / 微信 / 表格直接粘贴），或上传Excel文件</div>
-          <div style="font-size:.8rem;margin-top:8px">
-            <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadExpenseExcel(this)"> 上传Excel文件</label>
-            <span class="upload-ok hidden" id="expOk" style="margin-left:8px"></span>
-            <a href="模板_费用报销明细表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:8px;display:inline-flex;align-items:center;gap:2px">下载模板</a>
-          </div>
-        </div>
-        <textarea id="rawInput" placeholder="每行一条费用记录。格式灵活：
-日期 | 金额 | 摘要 | 部门 / 报销人
-2024-03-15	358.00	A4纸 墨盒	行政部
-03.16	1200.00	服务器租用费	技术部
-2024-03-18	186.50	滴滴打车 拜访客户	销售部-张三
-3月20日	5000.00	支付律师咨询费	法务部
-...可以没有日期，也可以有任意额外列。系统自动识别金额列。」></textarea>
-      </div>
-      <div>
-        <div class="quick-row">
-          <span style="font-size:.85rem;color:#4a5568;white-space:nowrap;font-weight:600">手动添一条：</span>
-          <input id="quickDesc" placeholder="摘要（如：快递费 顺丰）" onkeydown="if(event.key==='Enter')addQuick()">
-          <input id="quickAmt" placeholder="金额" type="number" step="0.01" style="max-width:100px" onkeydown="if(event.key==='Enter')addQuick()">
-          <button class="btn btn-primary btn-sm" onclick="addQuick()">添加</button>
-        </div>
-        <div style="font-size:.8rem;color:#718096;margin-bottom:10px">或批量粘贴到左侧文本框，系统自动解析。</div>
+    <h2>分类汇总</h2>
+    <div class="pie-box">
+      <div class="pie" id="pieChart"></div>
+      <div class="legend" id="pieLegend"></div>
+    </div>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <table class="cat-summary" style="width:auto;min-width:500px">
+      <thead><tr><th>科目</th><th>条数</th><th>金额合计</th><th>占比</th><th></th></tr></thead>
+      <tbody id="catSummaryBody"></tbody>
+    </table>
+  </div>
 
-        <div class="rule-section">
-          <div style="font-weight:600;font-size:.85rem;color:#4a5568;margin-bottom:8px">自定义分类规则</div>
-          <div style="font-size:.78rem;color:#a0aec0;margin-bottom:6px">关键词命中即归入对应科目。大小写不敏感。示例规则已预设。</div>
-          <div id="ruleBody"></div>
-          <button class="btn btn-outline btn-sm" onclick="addRule()">+ 添加规则</button>
-          <button class="btn btn-warn btn-sm" onclick="resetRules()" style="margin-left:8px">恢复默认</button>
-        </div>
-      </div>
+  <div class="section">
+    <h2>分类明细</h2>
+    <div style="overflow-x:auto;max-height:500px;overflow-y:auto">
+      <table>
+        <thead><tr><th style="width:40px">#</th><th style="width:100px">日期</th><th>摘要</th><th style="width:100px">金额</th><th style="width:120px">自动分类</th><th>命中关键词</th></tr></thead>
+        <tbody id="detailBody"></tbody>
+      </table>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="classify()">自动分类</button>
-      <button class="btn btn-outline" onclick="clearInput()">清空</button>
-      <span style="align-self:center;font-size:.85rem;color:#a0aec0;margin-left:auto">已解析 <strong id="parseCount">0</strong> 条</span>
+      <button class="btn btn-success" onclick="exportResult()">导出 Excel 分类表</button>
     </div>
   </div>
+</div>
 
-  <!-- RESULT -->
-  <div id="resultArea" class="hidden">
-    <div class="section">
-      <h2>分类汇总</h2>
-      <div class="pie-container">
-        <div class="pie-chart" id="pieChart"></div>
-        <div class="pie-legend" id="pieLegend"></div>
-      </div>
-      <div class="summary-grid" id="summaryGrid"></div>
-      <table class="cat-summary">
-        <thead><tr><th>科目</th><th>条数</th><th>金额合计</th><th>占比</th><th>分布</th></tr></thead>
-        <tbody id="catSummaryBody"></tbody>
-      </table>
-      <div style="font-size:.8rem;color:#a0aec0;margin-top:12px">
-        未匹配条目 <strong id="unmatchedCount">0</strong> 条 — 可在下方明细中手动选择科目
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>分类明细</h2>
-      <div style="overflow-x:auto;max-height:600px;overflow-y:auto">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:40px">#</th>
-              <th style="width:110px">日期</th>
-              <th>摘要</th>
-              <th style="width:100px">金额</th>
-              <th style="width:120px">自动分类</th>
-              <th style="width:130px">手动改</th>
-              <th>关键词</th>
-            </tr>
-          </thead>
-          <tbody id="detailBody"></tbody>
-        </table>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-success" onclick="exportResult()">导出Excel</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="emptyResult" class="section empty">请在左侧粘贴报销数据，点击「自动分类」</div>
+<div class="footer">费用报销自动分类器 · 纯前端本地运行 · 数据不上传 · 免费使用</div>
 </div>
 
 <script>
-// ====== DEFAULT CLASSIFICATION RULES ======
-const DEFAULT_RULES = [
-  { keywords: '办公用品,A4,纸,笔,墨盒,硒鼓,文具,文件夹,笔记本,打印', cat: 'A', catName: '办公费' },
-  { keywords: '快递,顺丰,中通,圆通,韵达,京东物流,EMS,邮寄,运费', cat: 'B', catName: '快递/物流费' },
-  { keywords: '差旅,机票,火车票,酒店,住宿,出差,滴滴,打车,出租车,交通,地铁,公交,加油,过路费,停车', cat: 'C', catName: '差旅/交通费' },
-  { keywords: '招待,宴请,餐饮,请客,应酬,商务用餐,饭局,客户餐', cat: 'D', catName: '业务招待费' },
-  { keywords: '服务器,软件,SaaS,域名,SSL,云服务,阿里云,腾讯云,AWS,Azure,IT,技术,带宽,CDN', cat: 'E', catName: 'IT/技术服务费' },
-  { keywords: '律师,法律,咨询,顾问,审计,评估,检测,认证', cat: 'F', catName: '咨询/专业服务费' },
-  { keywords: '电费,水费,租金,物业,暖气,网费,电话费,保洁,保安,维修,装修,绿植', cat: 'G', catName: '管理费用-其他' },
-  { keywords: '广告,推广,营销,百度推广,巨量,抖音推广,信息流,SEO,投放,流量', cat: 'H', catName: '广告/推广费' },
-  { keywords: '培训,课程,学习,报名,考试,认证费,继续教育', cat: 'I', catName: '培训/教育费' },
-  { keywords: '工资,社保,公积金,奖金,福利,体检,团建,生日,节日礼品', cat: 'J', catName: '人工/福利费' },
-  { keywords: '银行,手续费,利息,汇款,转账费,财务,审计调整', cat: 'K', catName: '财务费用' },
-  { keywords: '折旧,摊销,固定资产,设备,电脑,手机,打印机,家具', cat: 'L', catName: '折旧/摊销' },
+// ====== RULES ======
+var rules = [
+  {kw:'办公用品,A4纸,笔,墨盒,硒鼓,文具,文件夹,打印,复印',cat:'A',name:'办公费'},
+  {kw:'快递,顺丰,中通,圆通,韵达,EMS,邮寄,运费',cat:'B',name:'快递/物流费'},
+  {kw:'差旅,机票,火车票,酒店,住宿,出差,滴滴,打车,交通,地铁,加油,过路,停车',cat:'C',name:'差旅/交通费'},
+  {kw:'招待,宴请,餐饮,请客,应酬,商务,饭局,客户餐',cat:'D',name:'业务招待费'},
+  {kw:'服务器,软件,SaaS,域名,SSL,云服务,阿里云,腾讯云,AWS,IT,带宽,CDN,网站',cat:'E',name:'IT/技术服务费'},
+  {kw:'律师,法律,咨询,顾问,审计,评估,检测,认证',cat:'F',name:'咨询/专业服务费'},
+  {kw:'电费,水费,租金,物业,暖气,网费,电话,保洁,保安,维修,装修,绿植,桶装水',cat:'G',name:'管理费用-其他'},
+  {kw:'广告,推广,营销,百度,巨量,抖音,信息流,SEO,投放,流量',cat:'H',name:'广告/推广费'},
+  {kw:'培训,课程,学习,报名,考试,认证,继续教育',cat:'I',name:'培训/教育费'},
+  {kw:'工资,社保,公积金,奖金,福利,体检,团建,生日,节日',cat:'J',name:'人工/福利费'},
+  {kw:'银行,手续费,利息,汇款,转账,财务费',cat:'K',name:'财务费用'},
+  {kw:'折旧,摊销,固定资产,设备,电脑,打印机,家具',cat:'L',name:'折旧/摊销'},
 ];
+var catColor = {A:'#3b82f6',B:'#8b5cf6',C:'#ef4444',D:'#16a34a',E:'#eab308',F:'#f97316',G:'#6b7280',H:'#ec4899',I:'#6366f1',J:'#f43f5e',K:'#14b8a6',L:'#9ca3af',X:'#d1d5db'};
+var catBg = {A:'bg-A',B:'bg-B',C:'bg-C',D:'bg-D',E:'bg-E',F:'bg-F',G:'bg-G',H:'bg-H',X:'bg-X'};
+var entries = [];
 
-const CAT_COLORS = {
-  A:'#4299e1',B:'#9f7aea',C:'#fc8181',D:'#48bb78',E:'#ecc94b',
-  F:'#f56565',G:'#a0aec0',H:'#ed8936',I:'#667eea',J:'#ed64a6',K:'#38b2ac',L:'#718096',
-  X:'#cbd5e0'
-};
-const CAT_CLASSES = {A:'cat-A',B:'cat-B',C:'cat-C',D:'cat-D',E:'cat-E',F:'cat-F',G:'cat-G',
-  H:'cat-E',I:'cat-B',J:'cat-C',K:'cat-G',L:'cat-G',X:'cat-G'};
-
-let rules = JSON.parse(JSON.stringify(DEFAULT_RULES));
-let entries = []; // {date, desc, amount, matchedCat, matchedKeyword, overrideCat}
-
-// ====== INIT ======
-document.addEventListener('DOMContentLoaded', () => { renderCatChips(); renderRules(); });
-document.getElementById('rawInput').addEventListener('input', () => { parseCount(); });
-
-// ===== 智能列名匹配引擎 =====
-const COL_ALIASES = {
-  name: ['品名','名称','物料名称','材料名称','产品名称','费用名称','项目','项目名称','科目','工序','工序名','步骤','物料','材料','产品','name','item','part','material','product','摘要','事项','用途','说明','描述'],
-  spec: ['规格','型号','规格型号','牌号','spec','model','type'],
-  qty: ['用量','数量','耗用','消耗量','单位用量','定额用量','实际用量','标准用量','qty','quantity','usage','count','件数','产量'],
-  unitPrice: ['单价','价格','标准单价','实际单价','采购单价','工资率','小时工资','费率','price','unit_price','rate','cost_per'],
-  amount: ['金额','总成本','总价','合计','标准总成本','实际总成本','成本','费用金额','总额','amount','total','cost','sum','报销金额','支出金额'],
-  laborHours: ['工时','人工工时','直接工时','标准工时','实际工时','小时','小时数','hours','labor_hours','man_hours','工作时间','机时'],
-  laborRate: ['工资率','小时工资','费率','标准工资率','实际工资率','rate','wage','hourly_rate'],
-  laborCost: ['人工成本','直接人工','人工费','工资','labor_cost','labor','man_cost','薪酬'],
-  date: ['日期','时间','发生日期','报销日期','记账日期','date','time','when','制单日期'],
-  qtyOut: ['产量','完工产量','产出','成品数','output','finished','产出量','完工数量'],
-  code: ['编码','物料编码','料号','产品编码','编号','code','part_no','item_no','pn','sku'],
-  dept: ['部门','领用部门','使用部门','成本中心','dept','department','center'],
-  person: ['领用人','经手人','报销人','申请人','员工','操作人','person','user','employee','by'],
-};
-
-function colMatchScore(header, candidate) {
-  const h = header.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
-  const c = candidate.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
-  if (h === c) return 100;
-  if (h.includes(c)) return 90;
-  if (c.includes(h)) return 85;
-  let maxLen = 0;
-  for (let i=0;i<h.length;i++) {
-    for (let j=i+1;j<=h.length;j++) {
-      if (c.includes(h.slice(i,j))) maxLen = Math.max(maxLen, j-i);
-    }
-  }
-  return maxLen >= 2 ? 50 + maxLen*5 : 0;
+// ====== RULE UI ======
+function renderRules() {
+  document.getElementById('ruleBody').innerHTML = rules.map(function(r,i){
+    var opts = rules.map(function(rr){return '<option value="'+rr.cat+'"'+(rr.cat===r.cat?' selected':'')+'>'+rr.name+'</option>';}).join('');
+    return '<div class="rule-row"><select onchange="rules['+i+'].cat=this.value;saveRules()">'+opts+'</select><input value="'+r.kw+'" onchange="rules['+i+'].kw=this.value;saveRules()" placeholder="关键词（逗号分隔）"><button class="btn btn-danger" style="font-size:.7rem;padding:3px 8px" onclick="rules.splice('+i+',1);renderRules();">×</button></div>';
+  }).join('');
 }
+function addRule(){var c='N';rules.push({kw:'',cat:c,name:'自定义'});renderRules();}
+function resetRules(){location.reload();}
+function saveRules(){}
 
-function smartMapColumns(headers) {
-  const mapping = {};
-  const fields = Object.keys(COL_ALIASES);
-  for (const field of fields) {
-    let bestIdx = -1, bestScore = 50;
-    for (let i=0;i<headers.length;i++) {
-      const hdr = String(headers[i]||'').trim();
-      if (!hdr) continue;
-      for (const alias of COL_ALIASES[field]) {
-        const score = colMatchScore(hdr, alias);
-        if (score > bestScore) { bestScore = score; bestIdx = i; }
-      }
-    }
-    if (bestIdx >= 0) mapping[field] = bestIdx;
-  }
-  return mapping;
-}
-
-function extractRow(row, mapping) {
-  const obj = {};
-  for (const [field, idx] of Object.entries(mapping)) {
-    obj[field] = (row[idx] !== undefined && row[idx] !== null) ? String(row[idx]).trim() : '';
-  }
-  return obj;
-}
-
-// ====== EXCEL UPLOAD ======
-function uploadExpenseExcel(inputEl) {
+// ====== UPLOAD ======
+function handleUpload(inputEl) {
   var file = inputEl.files[0];
   if (!file) return;
+  showStatus('读取中...');
   var reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onerror = function(){showStatus('读取失败');};
+  reader.onload = function(e){
     try {
-      var wb = XLSX.read(e.target.result, {type: "array"});
-      var ws = wb.Sheets[wb.SheetNames[0]];
-      var csv = XLSX.utils.sheet_to_csv(ws, {FS: "\t", blankrows: false, strip: true});
-      document.getElementById("rawInput").value = csv;
-      var rowCount = csv.split("\n").filter(function(l){ return l.trim(); }).length;
-      document.getElementById("expOk").textContent = "已加载 " + rowCount + " 行";
-      document.getElementById("expOk").classList.remove("hidden");
-      setTimeout(function(){ document.getElementById("expOk").classList.add("hidden"); }, 4000);
-      parseCount();
-      classify();
-      inputEl.value = "";
+      var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      var csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], {FS:'\t', blankrows:false, strip:true});
+      document.getElementById('rawInput').value = csv;
+      var n = csv.split(/\r?\n/).filter(function(l){return l.trim();}).length;
+      showStatus('已加载 '+n+' 行');
+      inputEl.value = '';
+      doClassify();
     } catch(err) {
-      alert("文件读取失败：" + err.message);
+      alert('文件解析失败：'+err.message);
+      showStatus('');
     }
   };
   reader.readAsArrayBuffer(file);
 }
-
-function renderCatChips() {
-  const cats = new Map();
-  entries.forEach(e => { const c = e.overrideCat || e.matchedCat; if(c) cats.set(c, (cats.get(c)||0) + (e.amount||0)); });
-  document.getElementById('catChips').innerHTML = rules.map(r => `
-    <span class="cat-chip ${CAT_CLASSES[r.cat]} ${cats.has(r.cat)?'active':''}"
-          style="${cats.has(r.cat)?'':'opacity:.5'}"
-          title="${r.catName}：${cats.has(r.cat)?'¥'+cats.get(r.cat).toFixed(2):'无数据'}">
-      ${r.catName}<span class="count">${cats.has(r.cat)?'¥'+(cats.get(r.cat)||0).toFixed(0):''}</span>
-    </span>
-  `).join('');
-}
-
-// ====== RULES ======
-function renderRules() {
-  document.getElementById('ruleBody').innerHTML = rules.map((r, i) => `
-    <div class="rule-row">
-      <select onchange="rules[${i}].cat=this.value;onRuleChange()">
-        ${rules.map(rr => `<option value="${rr.cat}" ${rr.cat===r.cat?'selected':''}>${rr.catName}</option>`).join('')}
-      </select>
-      <input value="${r.keywords}" onchange="rules[${i}].keywords=this.value;onRuleChange()" placeholder="关键词(逗号分隔)" style="flex:2;min-width:200px">
-      <button class="btn btn-sm" style="background:#fed7d7;color:#c53030" onclick="removeRule(${i})">×</button>
-    </div>
-  `).join('');
-}
-function addRule() {
-  const usedCats = new Set(rules.map(r=>r.cat));
-  const nextCat = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find(c=>!usedCats.has(c)) || 'X';
-  rules.push({keywords:'',cat:nextCat,catName:'自定义科目'});
-  renderRules();
-}
-function removeRule(i) { rules.splice(i,1); renderRules(); onRuleChange(); }
-function resetRules() { rules = JSON.parse(JSON.stringify(DEFAULT_RULES)); renderRules(); onRuleChange(); }
-function onRuleChange() { if(entries.length) classify(); }
-
-// ====== PARSE ======
-function parseCount() {
-  const parsed = parseEntries();
-  document.getElementById('parseCount').textContent = parsed.length;
-}
-
-function parseEntries() {
-  const text = document.getElementById('rawInput').value.trim();
-  if(!text) return [];
-  const lines = text.split('\n').filter(l => l.trim());
-  const result = [];
-  for(const line of lines) {
-    // Try split
-    let cols = line.split('\t');
-    if(cols.length < 2) cols = line.split('|').map(c=>c.trim());
-    if(cols.length < 2) cols = line.split(/ {2,}/);
-    if(cols.length < 2) cols = line.split(',');
-
-    // Extract fields
-    let date='', amount=null, desc='';
-    const numCols = [];
-    const strCols = [];
-    cols.forEach(c => {
-      const v = c.trim();
-      if(!v) return;
-      const n = parseFloat(v.replace(/[¥￥,]/g,''));
-      if(!isNaN(n) && n>0) numCols.push(n);
-      else if(/\d{4}[./-]\d{1,2}[./-]\d{1,2}/.test(v) || /^\d{1,2}[./月]\d{1,2}[日号]?$/.test(v)) date = v;
-      else strCols.push(v);
-    });
-    // Amount = best guess: the most "expense-like" number (>0, not huge)
-    if(numCols.length) amount = numCols.reduce((a,b) => Math.abs(a-500) < Math.abs(b-500) ? a : b); // pick most likely
-    // Desc = longest text or concatenation
-    desc = strCols.filter(s => s.length >= 2).join(' ') || strCols.join(' ') || line;
-    if(desc.length > 80) desc = desc.slice(0,80);
-
-    if(amount || desc) result.push({date, desc, amount: amount||0});
-  }
-  return result;
+function showStatus(msg) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
 }
 
 // ====== CLASSIFY ======
-function classify() {
-  entries = parseEntries();
-  if(!entries.length) {
-    document.getElementById('emptyResult').classList.remove('hidden');
-    document.getElementById('resultArea').classList.add('hidden');
-    return;
-  }
+function doClassify() {
+  var text = document.getElementById('rawInput').value.trim();
+  if (!text) return;
 
-  // Match each entry against rules
-  entries.forEach(e => {
-    e.matchedCat = 'X';
-    e.matchedKeyword = '';
-    const lower = (e.desc || '').toLowerCase();
-    for(const rule of rules) {
-      const kws = rule.keywords.split(/[,，、]/);
-      for(const kw of kws) {
-        const k = kw.trim().toLowerCase();
-        if(k && lower.includes(k)) {
-          e.matchedCat = rule.cat;
-          e.matchedKeyword = kw.trim();
-          break;
-        }
-      }
-      if(e.matchedCat !== 'X') break;
-    }
-    if(!e.overrideCat) e.overrideCat = '';
+  entries = [];
+  var lines = text.split(/\r?\n/).filter(function(l){return l.trim();});
+  document.getElementById('parseCount').textContent = lines.length;
+
+  lines.forEach(function(line){
+    var cols = line.split('\t');
+    if (cols.length < 2) cols = line.split('|').map(function(c){return c.trim();});
+    if (cols.length < 2) cols = line.split(/ {2,}/);
+    if (cols.length < 2) cols = line.split(',');
+
+    var date='', amt=null, desc='';
+    cols.forEach(function(c){
+      var v = c.trim();
+      if (!v) return;
+      var n = parseFloat(v.replace(/[¥￥,]/g,''));
+      if (!isNaN(n) && n > 0) { if (amt === null) amt = n; }
+      else if (/\d{4}[./-]\d{1,2}[./-]\d{1,2}/.test(v) || /^\d{1,2}[./月]\d{1,2}[日号]?$/.test(v)) date = v;
+      else if (v.length >= 2) desc = desc ? desc + ' ' + v : v;
+    });
+    if (!desc && !amt) return;
+    if (desc && desc.length > 80) desc = desc.slice(0,80);
+
+    var cat='X', kw='';
+    var lower = (desc||'').toLowerCase();
+    rules.forEach(function(r){
+      r.kw.split(/[,\uff0c\u3001]/).forEach(function(k){
+        var kk = k.trim().toLowerCase();
+        if (kk && lower.indexOf(kk) >= 0) { cat = r.cat; kw = k.trim(); }
+      });
+    });
+    entries.push({date:date||'', desc:desc||'', amount:amt||0, cat:cat, kw:kw});
   });
 
   renderCatChips();
   renderSummary();
   renderDetail();
-  document.getElementById('emptyResult').classList.add('hidden');
   document.getElementById('resultArea').classList.remove('hidden');
 }
 
-// ====== SUMMARY ======
+// ====== RENDER ======
+function renderCatChips() {
+  var chips = document.getElementById('catChips'); if(!chips) return;
+  var totals = {};
+  entries.forEach(function(e){if(!totals[e.cat])totals[e.cat]=0;totals[e.cat]+=e.amount;});
+  chips.innerHTML = rules.map(function(r){
+    var t = totals[r.cat]||0;
+    return '<span class="cat-badge '+catBg[r.cat]+'" style="opacity:'+(t?'1':'.4')+'">'+r.name+(t?' ¥'+t.toFixed(0):'')+'</span>';
+  }).join('');
+}
+
 function renderSummary() {
-  const cats = {};
-  let total = 0;
-  entries.forEach(e => {
-    const cat = e.overrideCat || e.matchedCat;
-    if(!cats[cat]) cats[cat] = {count:0, amount:0, name:''};
-    cats[cat].count++;
-    cats[cat].amount += e.amount;
+  var cats = {}, total = 0;
+  entries.forEach(function(e){
+    if(!cats[e.cat]) cats[e.cat] = {count:0, amount:0};
+    cats[e.cat].count++; cats[e.cat].amount += e.amount;
     total += e.amount;
   });
+  var nameMap = {}; rules.forEach(function(r){nameMap[r.cat]=r.name;}); nameMap['X']='未匹配';
 
-  // Fill names
-  const catMap = {};
-  rules.forEach(r => catMap[r.cat] = r.catName);
-  catMap['X'] = '未匹配';
-  Object.keys(cats).forEach(c => cats[c].name = catMap[c] || c);
-
-  // Pie chart
-  let gradientStops = [];
-  let cum = 0;
-  const sorted = Object.entries(cats).sort((a,b) => b[1].amount - a[1].amount);
-  sorted.forEach(([cat, d], i) => {
-    const pct = total ? d.amount / total * 100 : 0;
-    const color = CAT_COLORS[cat] || '#cbd5e0';
-    const start = cum;
+  // Pie
+  var stops=[], cum=0;
+  var sorted = Object.entries(cats).sort(function(a,b){return b[1].amount - a[1].amount;});
+  sorted.forEach(function(p){
+    var pct = total ? p[1].amount/total*100 : 0;
+    if (pct > 0) stops.push(catColor[p[0]]+' '+cum+'% '+(cum+pct)+'%');
     cum += pct;
-    gradientStops.push(`${color} ${start}% ${cum}%`);
   });
-  document.getElementById('pieChart').style.background = `conic-gradient(${gradientStops.join(',')})`;
+  document.getElementById('pieChart').style.background = stops.length ? 'conic-gradient('+stops.join(',')+')' : '';
 
-  document.getElementById('pieLegend').innerHTML = sorted.map(([cat, d]) => {
-    const pct = total ? (d.amount/total*100).toFixed(1) : 0;
-    return `<span style="display:flex;align-items:center;gap:6px;font-size:.85rem"><span style="width:12px;height:12px;border-radius:2px;background:${CAT_COLORS[cat]||'#cbd5e0'};display:inline-block"></span> ${d.name} <strong>¥${d.amount.toFixed(0)}</strong> (${pct}%)</span>`;
+  document.getElementById('pieLegend').innerHTML = sorted.map(function(p){
+    var pct = total?(p[1].amount/total*100).toFixed(1):0;
+    return '<span><span class="dot" style="background:'+catColor[p[0]]+'"></span> '+nameMap[p[0]]+' <strong>¥'+p[1].amount.toFixed(0)+'</strong> ('+pct+'%)</span>';
   }).join('');
 
   // Summary grid
-  const unmatched = cats['X'] || {count:0, amount:0};
-  document.getElementById('summaryGrid').innerHTML = `
-    <div class="summary-card" style="border-left-color:#4299e1"><div class="value">¥${total.toFixed(2)}</div><div class="label">报销总额</div></div>
-    <div class="summary-card" style="border-left-color:#48bb78"><div class="value">${entries.length}</div><div class="label">条目总数</div></div>
-    <div class="summary-card" style="border-left-color:#9f7aea"><div class="value">${Object.keys(cats).length - (cats['X']?1:0)}</div><div class="label">覆盖科目</div></div>
-    <div class="summary-card" style="border-left-color:#fc8181"><div class="value" style="color:#e53e3e">${unmatched.count}</div><div class="label">未匹配 (¥${unmatched.amount.toFixed(0)})</div></div>
-    <div class="summary-card" style="border-left-color:#ecc94b"><div class="value">${total?(100-unmatched.amount/total*100).toFixed(1):0}%</div><div class="label">分类覆盖率</div></div>
-  `;
+  var unmatched = cats['X'] || {count:0, amount:0};
+  document.getElementById('summaryGrid').innerHTML =
+    '<div class="summary-card" style="border-left-color:#3b82f6"><div class="value">¥'+total.toFixed(2)+'</div><div class="label">报销总额</div></div>'+
+    '<div class="summary-card" style="border-left-color:#16a34a"><div class="value">'+entries.length+'</div><div class="label">条目总数</div></div>'+
+    '<div class="summary-card" style="border-left-color:#8b5cf6"><div class="value">'+(Object.keys(cats).length-(cats.X?1:0))+'</div><div class="label">覆盖科目</div></div>'+
+    '<div class="summary-card" style="border-left-color:#ef4444"><div class="value" style="color:#ef4444">'+unmatched.count+'</div><div class="label">未匹配 (¥'+unmatched.amount.toFixed(0)+')</div></div>';
 
   // Cat summary table
-  const maxAmt = Math.max(...Object.values(cats).map(d=>d.amount), 1);
-  document.getElementById('catSummaryBody').innerHTML = sorted.map(([cat, d]) => `
-    <tr>
-      <td style="font-weight:600"><span class="cat-badge ${CAT_CLASSES[cat]||'cat-G'}">${d.name}</span></td>
-      <td>${d.count}</td>
-      <td style="font-weight:600;text-align:right">¥${d.amount.toFixed(2)}</td>
-      <td style="text-align:right">${total?(d.amount/total*100).toFixed(1):0}%</td>
-      <td><span class="bar-wrap"><span class="bar-fill" style="width:${d.amount/maxAmt*100}%;background:${CAT_COLORS[cat]||'#cbd5e0'}"></span></span></td>
-    </tr>
-  `).join('');
-
-  document.getElementById('unmatchedCount').textContent = unmatched.count;
-}
-
-// ====== DETAIL TABLE ======
-function renderDetail() {
-  document.getElementById('detailBody').innerHTML = entries.map((e, i) => {
-    const cat = e.overrideCat || e.matchedCat;
-    const catName = rules.find(r => r.cat === cat)?.catName || cat || '未匹配';
-    const isUnmatched = cat === 'X';
-    return `<tr class="${isUnmatched?'flagged':''}">
-      <td>${i+1}</td>
-      <td>${e.date||'-'}</td>
-      <td>${e.desc||'-'}</td>
-      <td class="num" style="font-weight:600">¥${(e.amount||0).toFixed(2)}</td>
-      <td><span class="cat-badge ${CAT_CLASSES[cat]}">${catName}</span>${e.matchedKeyword?'<br><span style="font-size:.7rem;color:#718096">命中: '+e.matchedKeyword+'</span>':''}</td>
-      <td><select onchange="overrideEntry(${i}, this.value)" style="padding:4px 8px;border-radius:4px;border:1px solid #e2e8f0;font-size:.8rem">
-        <option value="">自动判定</option>
-        ${rules.map(r => `<option value="${r.cat}" ${e.overrideCat===r.cat?'selected':''}>${r.catName}</option>`).join('')}
-      </select></td>
-      <td style="font-size:.75rem;color:${isUnmatched?'#e53e3e':'#718096'}">${isUnmatched?'⚠ 未匹配':e.matchedKeyword||'—'}</td>
-    </tr>`;
+  var maxAmt = Math.max(1, ...Object.values(cats).map(function(d){return d.amount;}));
+  document.getElementById('catSummaryBody').innerHTML = sorted.map(function(p){
+    var pct = total ? (p[1].amount/total*100).toFixed(1) : 0;
+    return '<tr><td style="font-weight:600">'+nameMap[p[0]]+'</td><td>'+p[1].count+'</td><td style="font-weight:600;text-align:right">¥'+p[1].amount.toFixed(2)+'</td><td style="text-align:right">'+pct+'%</td><td><span class="bar"><span class="bar-fill" style="width:'+(p[1].amount/maxAmt*100)+'%;background:'+catColor[p[0]]+'"></span></span></td></tr>';
   }).join('');
 }
 
-function overrideEntry(i, cat) {
-  entries[i].overrideCat = cat;
-  renderCatChips();
-  renderSummary();
-  renderDetail();
+function renderDetail() {
+  var nameMap = {}; rules.forEach(function(r){nameMap[r.cat]=r.name;}); nameMap['X']='未匹配';
+  document.getElementById('detailBody').innerHTML = entries.map(function(e,i){
+    return '<tr'+(e.cat==='X'?' style="background:#fff5f5"':'')+'>'+
+      '<td>'+(i+1)+'</td><td>'+(e.date||'-')+'</td><td>'+(e.desc||'-')+'</td><td class="num" style="font-weight:600">¥'+e.amount.toFixed(2)+'</td>'+
+      '<td><span class="cat-badge '+catBg[e.cat]+'">'+nameMap[e.cat]+'</span></td>'+
+      '<td style="font-size:.78rem;color:'+(e.cat==='X'?'#ef4444':'#6b7280')+'">'+(e.cat==='X'?'⚠ 未匹配':e.kw||'—')+'</td></tr>';
+  }).join('');
 }
 
-// ====== QUICK ADD ======
-function addQuick() {
-  const desc = document.getElementById('quickDesc').value.trim();
-  const amt = parseFloat(document.getElementById('quickAmt').value);
-  if(!desc && isNaN(amt)) return;
-  const line = `\n${desc}\t${amt||''}`;
-  document.getElementById('rawInput').value += line;
-  document.getElementById('quickDesc').value = '';
-  document.getElementById('quickAmt').value = '';
-  parseCount();
-  document.getElementById('quickDesc').focus();
-}
-
-function clearInput() {
+function clearAll() {
   document.getElementById('rawInput').value = '';
-  entries = [];
+  document.getElementById('parseCount').textContent = '0';
   document.getElementById('resultArea').classList.add('hidden');
-  document.getElementById('emptyResult').classList.remove('hidden');
-  renderCatChips();
-  parseCount();
+  document.getElementById('status').textContent = '';
+  document.getElementById('status').classList.add('hidden');
+  entries = [];
 }
 
 // ====== EXPORT ======
 function exportResult() {
-  if(!entries.length){alert('无数据');return;}
-  const data = entries.map((e,i) => {
-    const cat = e.overrideCat || e.matchedCat;
-    const catName = rules.find(r=>r.cat===cat)?.catName || '未匹配';
-    return {'序号':i+1,'日期':e.date,'摘要':e.desc,'金额':e.amount,'科目':catName,'分类代码':cat,'关键词':e.matchedKeyword};
+  if (!entries.length) { alert('没有数据可导出'); return; }
+  var nameMap = {}; rules.forEach(function(r){nameMap[r.cat]=r.name;}); nameMap['X']='未匹配';
+  var data = entries.map(function(e,i){
+    return {序号:i+1,日期:e.date,摘要:e.desc,金额:e.amount,科目:nameMap[e.cat],代码:e.cat,关键词:e.kw||''};
   });
-  const ws = XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = [{wch:5},{wch:14},{wch:40},{wch:12},{wch:14},{wch:8},{wch:12}];
-  const wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:5},{wch:14},{wch:42},{wch:12},{wch:14},{wch:8},{wch:12}];
+  var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '费用分类明细');
-  XLSX.writeFile(wb, `费用报销分类_${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb, '费用报销分类_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
+
+// ====== INIT ======
+renderRules();
 </script>
 </body>
 </html>
