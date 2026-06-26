@@ -289,28 +289,27 @@ function extractRow(row, mapping) {
 function uploadExpenseExcel(inputEl) {
   var file = inputEl.files[0];
   if (!file) return;
-  document.getElementById("expOk").textContent = "读取中...";
-  document.getElementById("expOk").classList.remove("hidden");
+  document.getElementById('expOk').textContent = '读取中...';
+  document.getElementById('expOk').classList.remove('hidden');
   var reader = new FileReader();
   reader.onerror = function(e) {
-    alert("文件读取失败，请确认文件格式为 .xlsx/.xls/.csv。错误: " + (reader.error ? reader.error.message : "未知"));
-    document.getElementById("expOk").classList.add("hidden");
+    alert('文件读取失败');
+    document.getElementById('expOk').classList.add('hidden');
   };
   reader.onload = function(e) {
     try {
-      var wb = XLSX.read(new Uint8Array(e.target.result), {type: "array"});
-      var csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], {FS: "\t", blankrows: false, strip: true});
-      document.getElementById("rawInput").value = csv;
-      var lines = csv.split(/\r?\n/).filter(function(l){ return l.trim(); });
-      document.getElementById("expOk").textContent = "已加载 " + lines.length + " 行，自动分类中...";
-      inputEl.value = "";
-      try { parseCount(); classify(); }
-      catch(ce) { alert("分类过程出错：" + ce.message); }
-      document.getElementById("expOk").textContent = "已加载 " + lines.length + " 行，分类完成";
-      setTimeout(function(){ document.getElementById("expOk").classList.add("hidden"); }, 3000);
+      var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      var csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], {FS:'	', blankrows:false, strip:true});
+      document.getElementById('rawInput').value = csv;
+      var lines = csv.split(/?
+/).filter(function(l){return l.trim();});
+      document.getElementById('expOk').textContent = '已加载 ' + lines.length + ' 行';
+      inputEl.value = '';
+      parseCount();
+      classify();
     } catch(err) {
-      alert("文件解析失败：" + err.message + "\n请确认是 .xlsx/.xls/.csv 格式。");
-      document.getElementById("expOk").classList.add("hidden");
+      alert('解析错误：' + err.message);
+      document.getElementById('expOk').classList.add('hidden');
     }
   };
   reader.readAsArrayBuffer(file);
