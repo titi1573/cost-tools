@@ -108,11 +108,11 @@ td .cat-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:
     <div class="cat-chips" id="catChips"></div>
     <div class="grid-2">
       <div>
-        <div class="paste-zone" id="pasteZone" onclick="document.getElementById('rawInput').focus()">
+        <div class="paste-zone" id="pasteZone">
           <div style="font-size:2rem;margin-bottom:8px">📋</div>
           <div>粘贴报销数据（从Excel / 微信 / 表格直接粘贴），或上传Excel文件</div>
           <div style="font-size:.8rem;margin-top:8px">
-            <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onclick="event.stopPropagation()" onchange="uploadExpenseExcel(this)"> 上传Excel文件</label>
+            <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadExpenseExcel(this)"> 上传Excel文件</label>
             <span class="upload-ok hidden" id="expOk" style="margin-left:8px"></span>
             <a href="模板_费用报销明细表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:8px;display:inline-flex;align-items:center;gap:2px">下载模板</a>
           </div>
@@ -289,28 +289,22 @@ function extractRow(row, mapping) {
 function uploadExpenseExcel(inputEl) {
   var file = inputEl.files[0];
   if (!file) return;
-  document.getElementById('expOk').textContent = '读取中...';
-  document.getElementById('expOk').classList.remove('hidden');
   var reader = new FileReader();
-  reader.onerror = function(e) {
-    alert('文件读取失败');
-    document.getElementById('expOk').classList.add('hidden');
-  };
   reader.onload = function(e) {
     try {
-      var wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-      var csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], {FS: '	', blankrows: false, strip: true});
-      document.getElementById('rawInput').value = csv;
-      var lines = csv.split(/?
-/).filter(function(l){return l.trim();});
-      document.getElementById('expOk').textContent = '已加载 ' + lines.length + ' 行, 分类完成';
-      inputEl.value = '';
+      var wb = XLSX.read(e.target.result, {type: "array"});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var csv = XLSX.utils.sheet_to_csv(ws, {FS: "\t", blankrows: false, strip: true});
+      document.getElementById("rawInput").value = csv;
+      var rowCount = csv.split("\n").filter(function(l){ return l.trim(); }).length;
+      document.getElementById("expOk").textContent = "已加载 " + rowCount + " 行";
+      document.getElementById("expOk").classList.remove("hidden");
+      setTimeout(function(){ document.getElementById("expOk").classList.add("hidden"); }, 4000);
       parseCount();
       classify();
-      setTimeout(function(){document.getElementById('expOk').classList.add('hidden');}, 3000);
+      inputEl.value = "";
     } catch(err) {
-      alert('解析失败: ' + err.message);
-      document.getElementById('expOk').classList.add('hidden');
+      alert("文件读取失败：" + err.message);
     }
   };
   reader.readAsArrayBuffer(file);
