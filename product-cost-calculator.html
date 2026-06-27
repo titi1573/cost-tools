@@ -161,13 +161,13 @@ td input:focus{outline:none;border-color:#3b82f6}
 var COL_ALIASES = {
   name: ['品名','名称','物料名称','材料名称','产品名称','name','item','product'],
   spec: ['规格','型号','规格型号','spec','model'],
-  qty: ['用量','数量','产量','qty','quantity','产量(件)','件数'],
+  qty: ['用量','数量','产量','qty','quantity','产量(件)','件数','单位用量'],
   unitPrice: ['单价','价格','unitPrice','price','rate','单价(¥)'],
   amount: ['金额','成本','amount','cost','total','总额','总成本']
 };
 
 function colScore(hdr, cand) {
-  var h = hdr.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
+  var h = (hdr||'').toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
   var c = cand.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
   if(h===c) return 100;
   if(h.indexOf(c)>=0) return 90;
@@ -196,7 +196,6 @@ function smartMap(headers) {
   return m;
 }
 
-// ====== INIT ======
 var DEFAULT_BOM_COUNT=5, DEFAULT_LABOR_COUNT=3, DEFAULT_BATCH_COUNT=3;
 
 function init(){
@@ -216,20 +215,32 @@ function switchTab(tab) {
   recalcAll();
 }
 
-// ====== SINGLE: BOM ======
 function addBomRow(name,spec,qty,unit,price){
-  name=name||'';spec=spec||'';qty=qty||'';unit=unit||'个';price=price||'';
+  name=name||'';spec=spec||'';qty=qty===undefined?'':qty;unit=unit||'个';price=price===undefined?'':price;
   var tb=document.getElementById('bomBody');
   var r=tb.insertRow();
-  r.innerHTML='<td><input class="name-input" value="'+name+'" placeholder="物料'+(tb.rows.length)+'" onchange="recalcAll()"></td>'
-    +'<td><input value="'+spec+'" style="text-align:left" onchange="recalcAll()"></td>'
+  r.innerHTML='<td><input class="name-input" value="'+escapeHtml(name)+'" placeholder="物料'+(tb.rows.length)+'" onchange="recalcAll()"></td>'
+    +'<td><input value="'+escapeHtml(spec)+'" style="text-align:left" onchange="recalcAll()"></td>'
     +'<td><input type="number" value="'+qty+'" step="0.01" min="0" style="width:80px" onchange="recalcAll()"></td>'
-    +'<td><input value="'+unit+'" style="width:60px;text-align:center" onchange="recalcAll()"></td>'
+    +'<td><input value="'+escapeHtml(unit)+'" style="width:60px;text-align:center" onchange="recalcAll()"></td>'
     +'<td><input type="number" value="'+price+'" step="0.01" min="0" onchange="recalcAll()"></td>'
     +'<td class="row-total" style="color:#3b82f6">¥0.00</td>'
-    +'<td><button class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove();recalcAll()" style="padding:3px 8px">x</button></td>';
+    +'<td><button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="this.closest(\'tr\').remove();recalcAll()">x</button></td>';
 }
 function addBomRows(n){for(var i=0;i<n;i++) addBomRow();}
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+function addLaborRow(proc,hrs,rate){
+  proc=proc||'';hrs=hrs===undefined?'':hrs;rate=rate===undefined?'':rate;
+  var tb=document.getElementById('laborBody');
+  var r=tb.insertRow();
+  r.innerHTML='<td><input class="name-input" value="'+escapeHtml(proc)+'" placeholder="工序'+(tb.rows.length+1)+'" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+hrs+'" step="0.1" min="0" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+rate+'" step="0.01" min="0" onchange="recalcAll()"></td>'
+    +'<td class="row-total" style="color:#f59e0b">¥0.00</td>'
+    +'<td><button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="this.closest(\'tr\').remove();recalcAll()">x</button></td>';
+}
+function addLaborRows(n){for(var i=0;i<n;i++) addLaborRow();}
 
 function uploadBOM(inputEl){
   var file=inputEl.files[0];
@@ -241,31 +252,69 @@ function uploadBOM(inputEl){
       var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
       var raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
       if(!raw.length){showStatus('bomStatus','');return;}
-      // Detect: first row may have headers or be data
-      var r0=raw[0];
-      var hasHdr=r0.some(function(c){return isNaN(parseFloat(c))&&String(c).trim().length>0;});
-      var hdrs=hasHdr?r0:r0.map(function(_,i){return 'Col'+i;});
-      var ds=hasHdr?1:0;
-      var m=smartMap(hdrs);
-      var nameCol=m.name, qtyCol=m.qty, priceCol=m.unitPrice;
+
+      var sections={bom:[], labor:[], oh:[]};
+      var currentSection=null;
+      for(var r=0;r<raw.length;r++){
+        var row=raw[r];
+        var firstCell=String(row[0]||'').trim();
+        if(firstCell.indexOf('物料清单')>=0||firstCell.indexOf('BOM')>=0){currentSection='bom';continue;}
+        if(firstCell.indexOf('直接人工')>=0||(firstCell.indexOf('人工')>=0&&firstCell.indexOf('---')>=0)){currentSection='labor';continue;}
+        if(firstCell.indexOf('制造费用')>=0||(firstCell.indexOf('费用')>=0&&firstCell.indexOf('---')>=0)){currentSection='oh';continue;}
+        if(firstCell.indexOf('计算结果')>=0||firstCell.indexOf('--- 计算')>=0){currentSection=null;continue;}
+        if(!currentSection) continue;
+        var hasNumbers=row.some(function(c){var v=parseFloat(c);return !isNaN(v)&&v!==0;});
+        if(!hasNumbers) continue;
+        sections[currentSection].push(row);
+      }
 
       document.getElementById('bomBody').innerHTML='';
-      var added=0;
-      for(var r=ds;r<raw.length;r++){
-        var row=raw[r];
-        if(!row.some(function(c){return c!==''&&c!=null&&c!==undefined;})) continue;
-        var n=nameCol!==undefined?String(row[nameCol]||'').trim():'';
-        var q=qtyCol!==undefined?parseFloat(row[qtyCol])||0:0;
-        var p=priceCol!==undefined?parseFloat(row[priceCol])||0:0;
-        if(!n&&!q&&!p) continue;
-        addBomRow(n,'',q,'个',p);
-        added++;
+      var bomAdded=0;
+      (sections.bom||[]).forEach(function(row){
+        var name=String(row[0]||'').trim();
+        if(!name) return;
+        var spec=String(row[1]||'').trim();
+        var unit=String(row[2]||'').trim();
+        var qty=parseFloat(row[3])||0;
+        var price=parseFloat(row[4])||0;
+        if(!qty&&!price) return;
+        addBomRow(name, spec, qty, unit||'个', price);
+        bomAdded++;
+      });
+      if(!bomAdded){for(var i=0;i<DEFAULT_BOM_COUNT;i++)addBomRow();}
+
+      document.querySelectorAll('#laborBody tr').forEach(function(rr){rr.remove();});
+      var labAdded=0;
+      (sections.labor||[]).forEach(function(row){
+        var proc=String(row[0]||'').trim();
+        if(!proc) return;
+        var hrs=parseFloat(row[1])||0;
+        var rate=parseFloat(row[2])||0;
+        if(!hrs&&!rate) return;
+        addLaborRow(proc, hrs, rate);
+        labAdded++;
+      });
+      if(!labAdded){for(var i=0;i<DEFAULT_LABOR_COUNT;i++)addLaborRow();}
+
+      if((sections.oh||[]).length>0){
+        var ohRow=sections.oh[0];
+        var ohAmt=parseFloat(ohRow[0])||0;
+        var ohQty=parseFloat(ohRow[1])||100;
+        var ohMethod=String(ohRow[2]||'').trim();
+        if(ohAmt) document.getElementById('ohTotal').value=ohAmt;
+        if(ohQty>1) document.getElementById('prodQty').value=ohQty;
+        if(ohMethod){
+          var methodMap={按工时:'labor_hours',按人工成本:'labor_cost',按材料成本:'material_cost',手动:'manual'};
+          var val=methodMap[ohMethod]||'labor_hours';
+          var radio=document.querySelector('input[name="ohMethod"][value="'+val+'"]');
+          if(radio) radio.checked=true;
+        }
       }
-      if(!added){for(var i=0;i<DEFAULT_BOM_COUNT;i++)addBomRow();}
+
       recalcAll();
-      showStatus('bomStatus','已加载 '+added+' 行');
+      showStatus('bomStatus','BOM:'+bomAdded+' 人工:'+labAdded+' 行');
       inputEl.value='';
-    }catch(err){alert('文件解析失败：'+err.message);showStatus('bomStatus','');}
+    }catch(err){alert('解析失败：'+err.message);showStatus('bomStatus','');}
   };
   reader.readAsArrayBuffer(file);
 }
@@ -273,23 +322,15 @@ function uploadBOM(inputEl){
 function resetBOM(){
   document.getElementById('bomBody').innerHTML='';
   for(var i=0;i<DEFAULT_BOM_COUNT;i++) addBomRow();
+  document.querySelectorAll('#laborBody tr').forEach(function(rr){rr.remove();});
+  for(var i=0;i<DEFAULT_LABOR_COUNT;i++) addLaborRow();
+  document.getElementById('ohTotal').value=5000;
+  document.getElementById('prodQty').value=100;
+  document.querySelector('input[name="ohMethod"][value="labor_hours"]').checked=true;
   showStatus('bomStatus','');
   recalcAll();
 }
 
-// ====== SINGLE: LABOR ======
-function addLaborRow(proc,hrs,rate){
-  proc=proc||'';hrs=hrs||'';rate=rate||'';
-  var tb=document.getElementById('laborBody');
-  var r=tb.insertRow();
-  r.innerHTML='<td><input class="name-input" value="'+proc+'" placeholder="工序'+(tb.rows.length+1)+'" onchange="recalcAll()"></td>'
-    +'<td><input type="number" value="'+hrs+'" step="0.1" min="0" onchange="recalcAll()"></td>'
-    +'<td><input type="number" value="'+rate+'" step="0.01" min="0" onchange="recalcAll()"></td>'
-    +'<td class="row-total" style="color:#f59e0b">¥0.00</td>'
-    +'<td><button class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove();recalcAll()" style="padding:3px 8px">x</button></td>';
-}
-
-// ====== SINGLE: RECALC ======
 function recalcAll(){recalcSingle();recalcBatch();}
 
 function recalcSingle(){
@@ -338,21 +379,20 @@ function recalcSingle(){
     +'<div class="summary-card" style="border-left-color:#ef4444;background:#fef2f2"><div class="value" style="color:#ef4444">¥'+(bomSum+laborSum).toFixed(2)+'</div><div class="label">变动成本（料+工）</div></div>';
 }
 
-// ====== BATCH ======
 function addBatchRow(name,qty,mat,labor,oh){
   name=name||'';qty=qty===undefined?'':qty;mat=mat===undefined?'':mat;labor=labor===undefined?'':labor;oh=oh===undefined?'':oh;
   var tb=document.getElementById('batchBody');
   var r=tb.insertRow();
   var idx=tb.rows.length;
   r.innerHTML='<td>'+idx+'</td>'
-    +'<td><input class="name-input" value="'+name+'" placeholder="产品'+idx+'" onchange="recalcAll()"></td>'
+    +'<td><input class="name-input" value="'+escapeHtml(name)+'" placeholder="产品'+idx+'" onchange="recalcAll()"></td>'
     +'<td><input type="number" value="'+qty+'" min="1" style="width:80px" onchange="recalcAll()"></td>'
     +'<td><input type="number" value="'+mat+'" step="0.01" onchange="recalcAll()"></td>'
     +'<td><input type="number" value="'+labor+'" step="0.01" onchange="recalcAll()"></td>'
     +'<td><input type="number" value="'+oh+'" step="0.01" onchange="recalcAll()"></td>'
     +'<td class="row-total">¥0.00</td>'
     +'<td class="row-total" style="color:#3b82f6">¥0.00</td>'
-    +'<td><button class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove();recalcAll()" style="padding:3px 8px">x</button></td>';
+    +'<td><button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="this.closest(\'tr\').remove();recalcAll()">x</button></td>';
 }
 function addBatchRows(n){for(var i=0;i<n;i++) addBatchRow();}
 
@@ -370,63 +410,59 @@ function uploadBatch(inputEl){
       var hasHdr=r0.some(function(c){return isNaN(parseFloat(c))&&String(c).trim().length>0;});
       var hdrs=hasHdr?r0:r0.map(function(_,i){return 'Col'+i;});
       var ds=hasHdr?1:0;
-      var m=smartMap(hdrs);
 
-      // Use smart mapping to find columns
-      var nameCol=m.name!==undefined?m.name:m.spec;
-      var qtyCol=m.qty;
-      var matCol=m.amount;
-      var laborCol=m.laborHours;
-      var ohCol=m.laborRate;
+      var nameCol=-1, qtyCol=-1;
+      for(var i=0;i<hdrs.length;i++){
+        var h=String(hdrs[i]||'').trim();
+        if(colScore(h,'产品名称')>60||colScore(h,'品名')>60) nameCol=i;
+        if(colScore(h,'产量')>60||colScore(h,'数量')>60||colScore(h,'件数')>60) qtyCol=i;
+      }
+      if(nameCol<0){
+        for(var i2=0;i2<hdrs.length;i2++){
+          var v2=String(r0[i2]||'').trim();
+          if(v2.length>0&&isNaN(parseFloat(v2))&&nameCol<0&&colScore(v2,'编码')<60&&colScore(v2,'code')<60) nameCol=i2;
+        }
+      }
 
       document.getElementById('batchBody').innerHTML='';
       var added=0;
       for(var r=ds;r<raw.length;r++){
         var row=raw[r];
         if(!row.some(function(c){return c!==''&&c!=null&&c!==undefined;})) continue;
+        var n=nameCol>=0?String(row[nameCol]||'').trim():'';
+        var q=qtyCol>=0?parseFloat(row[qtyCol])||0:0;
 
-        var n=nameCol!==undefined?String(row[nameCol]||'').trim():'';
-        var q=qtyCol!==undefined?parseFloat(row[qtyCol])||0:0;
-        var mat=0,matchFound=false;
-
-        // Smart material detection: find columns with "材料" or "成本" in header
+        var matSum=0;
         for(var c=0;c<row.length;c++){
-          var hdr=String(hdrs[c]||'').trim();
-          if((colScore(hdr,'材料')>60||colScore(hdr,'成本')>60||colScore(hdr,'金额')>60)&&c!==nameCol&&c!==qtyCol){
-            mat+=parseFloat(row[c])||0;
-            matchFound=true;
-          }
+          if(c===nameCol||c===qtyCol) continue;
+          var h=String(hdrs[c]||'').trim();
+          if(h.indexOf('材料')>=0||h.indexOf('¥')>=0) matSum+=parseFloat(row[c])||0;
         }
-        // Fallback: use amount column
-        if(!matchFound&&matCol!==undefined) mat=parseFloat(row[matCol])||0;
 
-        // Smart labor detection
-        var lab=0;
+        var stepHrs=[], stepRates=[];
         for(var c2=0;c2<row.length;c2++){
           var h2=String(hdrs[c2]||'').trim();
-          if(colScore(h2,'人工')>60||colScore(h2,'工资')>60||colScore(h2,'工时')>60){
-            lab+=parseFloat(row[c2])||0;
-          }
+          if(h2.indexOf('工时')>=0||h2.indexOf('(h)')>=0) stepHrs.push(parseFloat(row[c2])||0);
+          if(h2.indexOf('工资率')>=0||h2.indexOf('¥/h')>=0) stepRates.push(parseFloat(row[c2])||0);
         }
+        var laborSum=0;
+        for(var s=0;s<Math.min(stepHrs.length,stepRates.length);s++) laborSum+=stepHrs[s]*stepRates[s];
 
-        // Smart OH detection
-        var o=0;
+        var ohSum=0;
         for(var c3=0;c3<row.length;c3++){
           var h3=String(hdrs[c3]||'').trim();
-          if(colScore(h3,'费用')>60||colScore(h3,'制造')>60||colScore(h3,'间接')>60){
-            o+=parseFloat(row[c3])||0;
-          }
+          if(h3.indexOf('费用')>=0||h3.indexOf('制造')>=0) ohSum+=parseFloat(row[c3])||0;
         }
 
-        if(!n&&!q&&!mat) continue;
-        addBatchRow(n,q,mat,lab,o);
+        if(!n&&!q&&!matSum&&!laborSum) continue;
+        addBatchRow(n,q,matSum,laborSum,ohSum);
         added++;
       }
       if(!added) addBatchRows(DEFAULT_BATCH_COUNT);
       recalcAll();
-      showStatus('batchStatus','已加载 '+added+' 行');
+      showStatus('batchStatus','已加载 '+added+' 行 (材料+人工+费用)');
       inputEl.value='';
-    }catch(err){alert('文件解析失败：'+err.message);showStatus('batchStatus','');}
+    }catch(err){alert('解析失败：'+err.message);showStatus('batchStatus','');}
   };
   reader.readAsArrayBuffer(file);
 }
