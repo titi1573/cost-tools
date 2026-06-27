@@ -3,458 +3,480 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>产品成本自动归集表 | Product Cost Calculator</title>
+<title>产品成本自动归集表</title>
 <script src="xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f0f4f8;color:#1a202c;line-height:1.6}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f1f5f9;color:#1a202c;line-height:1.6}
 .container{max-width:1300px;margin:0 auto;padding:20px}
-h1{font-size:1.8rem;color:#2d3748;margin-bottom:4px}
-.subtitle{color:#718096;margin-bottom:20px;font-size:.9rem}
+h1{font-size:1.8rem;color:#1e3a5f}
+.subtitle{color:#6b7280;margin-bottom:20px;font-size:.9rem}
+.section{background:#fff;border-radius:14px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid #e5e7eb}
+.section h2{font-size:1.05rem;color:#1e3a5f;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.badge{font-size:.7rem;padding:2px 8px;border-radius:10px;font-weight:700;color:#fff}
+.badge-bom{background:#3b82f6}.badge-labor{background:#f59e0b}.badge-oh{background:#8b5cf6}.badge-result{background:#16a34a}
 
-.section{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.section h2{font-size:1.1rem;color:#2d3748;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px}
-.section h2 .badge{font-size:.7rem;padding:2px 8px;border-radius:10px;font-weight:700;color:#fff}
-.badge-bom{background:#4299e1}
-.badge-labor{background:#ed8936}
-.badge-oh{background:#9f7aea}
-.badge-result{background:#48bb78}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #e5e7eb}
+th{background:#f9fafb;color:#4a5568;font-weight:700;font-size:.75rem;position:sticky;top:0;z-index:1}
+td:first-child,th:first-child{text-align:left}
+td input,td select{padding:5px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:.84rem;text-align:right;min-width:60px}
+td input.name-input{text-align:left;min-width:100px}
+td input:focus{outline:none;border-color:#3b82f6}
+.row-total{font-weight:600;color:#1e3a5f;font-size:.85rem}
 
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-@media(max-width:900px){.grid-3{grid-template-columns:1fr}}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.btn{padding:8px 18px;border:none;border-radius:8px;font-size:.85rem;cursor:pointer;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.btn-sm{padding:5px 12px;font-size:.78rem}
+.btn-primary{background:#3b82f6;color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-success{background:#16a34a;color:#fff}.btn-success:hover{background:#15803d}
+.btn-outline{background:#fff;color:#3b82f6;border:1.5px solid #3b82f6}.btn-outline:hover{background:#eff6ff}
+.btn-ghost{background:#f3f4f6;color:#4a5568}.btn-ghost:hover{background:#e5e7eb}
+.btn-danger{background:#fee2e2;color:#991b1b}.btn-danger:hover{background:#fecaca}
+
+.upload-btn{position:relative;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#eff6ff;color:#3b82f6;border:1px dashed #3b82f6;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600}
+.upload-btn:hover{background:#dbeafe;border-style:solid}
+.upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.status{font-size:.75rem;font-weight:600;color:#16a34a;margin-left:4px}
+
+.oh-config{background:#faf5ff;border:1px solid #e9d8fd;border-radius:8px;padding:14px;margin-bottom:10px}
+.oh-config label{font-size:.84rem;font-weight:600;color:#7c3aed;display:block;margin-bottom:4px}
+.oh-methods{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px}
+.oh-methods label{font-weight:400;color:#4a5568;display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem}
+.oh-inputs{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.oh-inputs input{width:130px;padding:8px;border:1px solid #e5e7eb;border-radius:6px}
+.oh-inputs span{color:#6b7280;font-size:.82rem}
+
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.summary-card{background:#f9fafb;border-radius:10px;padding:14px;text-align:center;border-left:3px solid transparent}
+.summary-card.highlight{border-left-color:#3b82f6;background:#eff6ff}
+.summary-card .value{font-size:1.35rem;font-weight:800}
+.summary-card .label{font-size:.76rem;color:#6b7280;margin-top:2px}
+.cost-breakdown{display:flex;gap:4px;height:18px;border-radius:4px;overflow:hidden;margin-top:4px}.cost-breakdown .m{background:#3b82f6}.cost-breakdown .l{background:#f59e0b}.cost-breakdown .o{background:#8b5cf6}
+.cost-legend{display:flex;gap:16px;font-size:.8rem;color:#6b7280;margin-top:10px;flex-wrap:wrap}
+.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:768px){.grid-2{grid-template-columns:1fr}}
 
-/* Editable Table */
-table{width:100%;border-collapse:collapse;font-size:.85rem}
-th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #e2e8f0}
-th{background:#f7fafc;color:#4a5568;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.3px}
-td:first-child,th:first-child{text-align:left}
-td input,td select{width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:4px;font-size:.85rem;text-align:right;transition:border-color .15s}
-td input:focus,td select:focus{outline:none;border-color:#4299e1;box-shadow:0 0 0 2px rgba(66,153,225,.15)}
-td input.name-input{text-align:left}
-td input.price-input{text-align:right}
-td input.qty-input{text-align:right;width:80px;margin:0 auto}
-.row-total{font-weight:600;color:#2d3748;font-size:.85rem}
-
-.btn-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-.btn{padding:8px 20px;border:none;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .15s}
-.btn-sm{padding:5px 12px;font-size:.8rem}
-.btn-primary{background:#4299e1;color:#fff}
-.btn-primary:hover{background:#3182ce}
-.btn-outline{background:#fff;color:#4299e1;border:1.5px solid #4299e1}
-.btn-outline:hover{background:#ebf8ff}
-.btn-danger{background:#fed7d7;color:#c53030}
-.btn-danger:hover{background:#feb2b2}
-.btn-success{background:#48bb78;color:#fff}
-.btn-success:hover{background:#38a169}
-
-/* OH allocation */
-.oh-config{background:#faf5ff;border:1px solid #e9d8fd;border-radius:8px;padding:16px;margin-bottom:12px}
-.oh-config label{font-size:.85rem;font-weight:600;color:#6b46c1;display:block;margin-bottom:6px}
-.oh-methods{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:10px}
-.oh-methods label{font-weight:400;color:#4a5568;display:flex;align-items:center;gap:6px;cursor:pointer}
-.oh-inputs{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.oh-inputs input{width:140px;padding:8px;border:1px solid #e2e8f0;border-radius:6px}
-.oh-inputs span{color:#718096;font-size:.85rem}
-
-/* Result Summary */
-.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px}
-.summary-card{background:#f7fafc;border-radius:8px;padding:14px;text-align:center;border-left:3px solid transparent}
-.summary-card.highlight{border-left-color:#4299e1;background:#ebf8ff}
-.summary-card .value{font-size:1.5rem;font-weight:700;color:#2d3748}
-.summary-card .label{font-size:.78rem;color:#718096;margin-top:2px}
-.summary-card .unit{font-size:.7rem;color:#a0aec0}
-
-.result-table-wrap{overflow-x:auto;max-height:500px;overflow-y:auto}
-.result-table th{position:sticky;top:0;z-index:1}
-.cost-breakdown{display:flex;gap:4px;height:20px;border-radius:4px;overflow:hidden;margin-top:4px;width:100%}
-.cost-breakdown .mat{background:#4299e1}
-.cost-breakdown .lab{background:#ed8936}
-.cost-breakdown .ohv{background:#9f7aea}
-.cost-legend{display:flex;gap:16px;font-size:.8rem;color:#718096;margin-top:8px;flex-wrap:wrap}
-.cost-legend span{display:flex;align-items:center;gap:5px}
-.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block}
-
-.empty-state{text-align:center;padding:40px;color:#a0aec0}
-.tab-bar{display:flex;gap:2px;margin-bottom:16px;background:#e2e8f0;border-radius:8px;padding:3px}
-.tab{flex:1;padding:8px 16px;text-align:center;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:600;border:none;background:transparent;color:#718096;transition:all .15s}
-.tab.active{background:#fff;color:#2d3748;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.tab-content{display:none}
-.tab-content.active{display:block}
-.upload-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#eff6ff;color:#3b82f6;border:1px dashed #3b82f6;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600;transition:all .15s;position:relative}
-.upload-btn:hover{background:#dbeafe;border-style:solid}
-.upload-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-.upload-ok{color:#16a34a;font-size:.75rem;font-weight:600}
+.tab-bar{display:flex;gap:4px;margin-bottom:18px;background:#e5e7eb;border-radius:10px;padding:4px}
+.tab-btn{flex:1;padding:10px 16px;text-align:center;border-radius:8px;cursor:pointer;font-size:.88rem;font-weight:600;border:none;background:transparent;color:#6b7280;transition:all .15s}
+.tab-btn.active{background:#fff;color:#1e3a5f;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.hidden{display:none!important}
+.footer{text-align:center;padding:20px;color:#9ca3af;font-size:.76rem}
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>产品成本自动归集表</h1>
-  <p class="subtitle">输入BOM物料 + 直接人工 + 制造费用 → 自动算单位成本，支持多产品批量计算</p>
+<h1>产品成本自动归集表</h1>
+<p class="subtitle">输入BOM物料 + 直接人工 + 制造费用 → 自动算单位成本，支持单产品详细归集和批量多产品 · Excel上传</p>
 
-  <!-- TABS -->
-  <div class="tab-bar">
-    <button class="tab active" onclick="switchTab('single')">单产品归集</button>
-    <button class="tab" onclick="switchTab('batch')">批量多产品</button>
-  </div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('single')">单产品归集</button>
+  <button class="tab-btn" onclick="switchTab('batch')">批量多产品</button>
+</div>
 
-  <!-- ============ SINGLE PRODUCT TAB ============ -->
-  <div id="tab-single" class="tab-content active">
-
-    <!-- BOM -->
-    <div class="section">
-      <h2><span class="badge badge-bom">BOM</span>物料清单</h2>
-      <div style="overflow-x:auto">
-        <table id="bomTable">
-          <thead>
-            <tr><th>物料名称</th><th>规格/型号</th><th>单位用量</th><th>单位</th><th>单价 (¥)</th><th>金额 (¥)</th><th></th></tr>
-          </thead>
-          <tbody id="bomBody"></tbody>
-        </table>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-outline btn-sm" onclick="addBomRow()">+ 添加物料</button>
-        <button class="btn btn-sm btn-outline" onclick="addBomRows(5)">+5行</button>
-        <a href="模板_单产品成本归集表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:12px">下载模板</a>
-        <span style="margin-left:auto;font-size:.85rem;color:#4a5568;align-self:center">物料合计: <strong id="bomTotal">¥0.00</strong></span>
-      </div>
+<!-- ===== SINGLE PRODUCT ===== -->
+<div id="tab-single" class="tab-panel active">
+  <div class="section">
+    <h2><span class="badge badge-bom">BOM</span>物料清单</h2>
+    <div style="overflow-x:auto">
+      <table id="bomTable"><thead><tr><th>物料名称</th><th>规格/型号</th><th>单位用量</th><th>单位</th><th>单价(¥)</th><th>金额(¥)</th><th></th></tr></thead><tbody id="bomBody"></tbody></table>
     </div>
-
-    <div class="grid-2">
-      <!-- Direct Labor -->
-      <div class="section">
-        <h2><span class="badge badge-labor">人工</span>直接人工</h2>
-        <table>
-          <thead><tr><th>工序/工种</th><th>工时(小时)</th><th>小时工资率(¥)</th><th>金额(¥)</th><th></th></tr></thead>
-          <tbody id="laborBody"></tbody>
-        </table>
-        <div class="btn-row">
-          <button class="btn btn-outline btn-sm" onclick="addLaborRow()">+ 添加工序</button>
-          <span style="margin-left:auto;font-size:.85rem;color:#4a5568;align-self:center">人工合计: <strong id="laborTotal">¥0.00</strong></span>
-        </div>
-      </div>
-
-      <!-- MOH -->
-      <div class="section">
-        <h2><span class="badge badge-oh">费用</span>制造费用</h2>
-        <div class="oh-config">
-          <label>分配方法</label>
-          <div class="oh-methods">
-            <label><input type="radio" name="ohMethod" value="labor_hours" checked onchange="recalcAll()"> 按直接人工工时</label>
-            <label><input type="radio" name="ohMethod" value="labor_cost" onchange="recalcAll()"> 按直接人工成本</label>
-            <label><input type="radio" name="ohMethod" value="material_cost" onchange="recalcAll()"> 按材料成本</label>
-            <label><input type="radio" name="ohMethod" value="manual" onchange="recalcAll()"> 手动输入</label>
-          </div>
-          <div class="oh-inputs">
-            <span>制造费用总额</span>
-            <input type="number" id="ohTotal" value="5000" step="100" onchange="recalcAll()" placeholder="总额">
-            <span>预计产量(件)</span>
-            <input type="number" id="prodQty" value="100" step="1" onchange="recalcAll()" placeholder="产量">
-            <span style="margin-left:16px">单位制造费用: <strong id="unitOH" style="color:#6b46c1">¥50.00</strong></span>
-          </div>
-          <div style="font-size:.8rem;color:#a0aec0;margin-top:8px" id="ohExplain">按直接人工工时分配：制造费用总额 ÷ (各工序工时×产量) × 本产品工时 = 分配额</div>
-        </div>
-        <table>
-          <thead><tr><th>费用项目</th><th>分配基数</th><th>分配率</th><th>金额(¥)</th></tr></thead>
-          <tbody id="ohBody"></tbody>
-        </table>
-        <div style="font-size:.85rem;margin-top:4px;color:#4a5568">费用合计: <strong id="ohTotalDisplay">¥50.00</strong></div>
-      </div>
-    </div>
-
-    <!-- RESULT -->
-    <div class="section">
-      <h2><span class="badge badge-result">结果</span>单位产品成本</h2>
-      <div class="summary-grid" id="singleSummary"></div>
-      <div class="cost-legend">
-        <span><span class="legend-dot" style="background:#4299e1"></span> 直接材料</span>
-        <span><span class="legend-dot" style="background:#ed8936"></span> 直接人工</span>
-        <span><span class="legend-dot" style="background:#9f7aea"></span> 制造费用</span>
-      </div>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="addBomRow()">+ 添加物料</button>
+      <button class="btn btn-sm btn-outline" onclick="addBomRows(5)">+5行</button>
+      <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadBOM(this)"> 上传BOM Excel</label>
+      <span class="status hidden" id="bomStatus"></span>
+      <button class="btn btn-ghost btn-sm" onclick="resetBOM()">重置</button>
+      <a href="模板_单产品成本归集表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:4px">下载模板</a>
+      <span style="margin-left:auto;font-size:.85rem;color:#4a5568">物料合计: <strong id="bomTotal">¥0.00</strong></span>
     </div>
   </div>
 
-  <!-- ============ BATCH TAB ============ -->
-  <div id="tab-batch" class="tab-content">
+  <div class="grid-2">
     <div class="section">
-      <h2>多产品批量归集</h2>
-      <p style="font-size:.85rem;color:#718096;margin-bottom:12px">每行一个产品，填入材料/人工/费用三项成本，自动汇总。可从Excel粘贴多行。</p>
-      <div style="overflow-x:auto">
-        <table id="batchTable">
-          <thead>
-            <tr><th>产品名称</th><th>产量(件)</th><th>直接材料(¥)</th><th>直接人工(¥)</th><th>制造费用(¥)</th><th>总成本(¥)</th><th>单位成本(¥)</th><th></th></tr>
-          </thead>
-          <tbody id="batchBody"></tbody>
-        </table>
-      </div>
+      <h2><span class="badge badge-labor">人工</span>直接人工</h2>
+      <table><thead><tr><th>工序/工种</th><th>工时(小时)</th><th>小时工资率(¥)</th><th>金额(¥)</th><th></th></tr></thead><tbody id="laborBody"></tbody></table>
       <div class="btn-row">
-        <button class="btn btn-outline btn-sm" onclick="addBatchRow()">+ 添加产品</button>
-        <button class="btn btn-outline btn-sm" onclick="addBatchRows(5)">+5行</button>
-        <label class="upload-btn" style="margin-left:8px"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadBatchExcel(this)"> 上传Excel</label>
-        <span style="font-size:.78rem;color:var(--gray-500);margin-left:8px">
-          <a href="模板_多产品成本归集表.xlsx" download style="color:var(--blue);font-weight:600;text-decoration:underline">下载模板</a>
-        </span>
-        <span class="upload-ok hidden" id="batchOk"></span>
-        <button class="btn btn-primary btn-sm" onclick="exportBatch()">导出Excel</button>
-      </div>
-      <div style="margin-top:12px;font-size:.85rem;color:#4a5568">
-        总成本合计: <strong id="batchGrandTotal">¥0.00</strong> &nbsp;|&nbsp;
-        总产量: <strong id="batchTotalQty">0</strong> 件 &nbsp;|&nbsp;
-        加权平均单位成本: <strong id="batchAvgCost">¥0.00</strong>
+        <button class="btn btn-outline btn-sm" onclick="addLaborRow()">+ 添加工序</button>
+        <span style="margin-left:auto;font-size:.85rem;color:#4a5568">人工合计: <strong id="laborTotal">¥0.00</strong></span>
       </div>
     </div>
+    <div class="section">
+      <h2><span class="badge badge-oh">费用</span>制造费用</h2>
+      <div class="oh-config">
+        <label>分配方法</label>
+        <div class="oh-methods">
+          <label><input type="radio" name="ohMethod" value="labor_hours" checked onchange="recalcAll()"> 按工时</label>
+          <label><input type="radio" name="ohMethod" value="labor_cost" onchange="recalcAll()"> 按人工成本</label>
+          <label><input type="radio" name="ohMethod" value="material_cost" onchange="recalcAll()"> 按材料成本</label>
+          <label><input type="radio" name="ohMethod" value="manual" onchange="recalcAll()"> 手动</label>
+        </div>
+        <div class="oh-inputs"><span>费用总额(¥)</span><input type="number" id="ohTotal" value="5000" step="100" onchange="recalcAll()"><span>产量(件)</span><input type="number" id="prodQty" value="100" step="1" onchange="recalcAll()"><span>单位费用: <strong id="unitOH" style="color:#7c3aed">¥50.00</strong></span></div>
+      </div>
+      <div style="font-size:.85rem;color:#4a5568">费用合计: <strong id="ohTotalDisplay">¥50.00</strong></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span class="badge badge-result">结果</span>单位产品成本</h2>
+    <div class="summary-grid" id="singleSummary"></div>
+    <div class="cost-legend"><span><span class="legend-dot" style="background:#3b82f6"></span>直接材料</span><span><span class="legend-dot" style="background:#f59e0b"></span>直接人工</span><span><span class="legend-dot" style="background:#8b5cf6"></span>制造费用</span></div>
   </div>
 </div>
 
-<script>
-// ====== INIT =======
-document.addEventListener('DOMContentLoaded', () => {
-  for(let i=0;i<5;i++) addBomRow();
-  for(let i=0;i<3;i++) addLaborRow();
-  addBatchRows(3);
-  recalcAll();
-});
+<!-- ===== BATCH ===== -->
+<div id="tab-batch" class="tab-panel">
+  <div class="section">
+    <h2>多产品批量归集</h2>
+    <p style="font-size:.82rem;color:#6b7280;margin-bottom:12px">每行一个产品，手工填写或上传Excel。上传后自动匹配列名。</p>
+    <div style="overflow-x:auto">
+      <table id="batchTable">
+        <thead><tr><th>#</th><th>产品名称</th><th>产量(件)</th><th>直接材料(¥)</th><th>直接人工(¥)</th><th>制造费用(¥)</th><th>总成本(¥)</th><th>单位成本(¥)</th><th></th></tr></thead>
+        <tbody id="batchBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="addBatchRow()">+ 添加产品</button>
+      <button class="btn btn-outline btn-sm" onclick="addBatchRows(3)">+3行</button>
+      <label class="upload-btn"><input type="file" accept=".xlsx,.xls,.csv" onchange="uploadBatch(this)"> 上传Excel</label>
+      <span class="status hidden" id="batchStatus"></span>
+      <button class="btn btn-ghost btn-sm" onclick="resetBatch()">重置</button>
+      <a href="模板_多产品成本归集表.xlsx" download style="font-size:.78rem;color:var(--blue);font-weight:600;text-decoration:underline;margin-left:4px">下载模板</a>
+      <button class="btn btn-success btn-sm" onclick="exportBatch()">导出Excel</button>
+    </div>
+    <div style="margin-top:12px;font-size:.84rem;color:#4a5568">
+      总成本合计: <strong id="batchGrandTotal">¥0.00</strong> | 总产量: <strong id="batchTotalQty">0</strong>件 | 加权平均单位成本: <strong id="batchAvgCost">¥0.00</strong>
+    </div>
+  </div>
+</div>
+<div class="footer">产品成本自动归集表 · 纯前端 · 数据不上传 · 免费使用</div>
+</div>
 
-// ====== EXCEL UPLOAD (Batch) ======
-function uploadBatchExcel(inputEl) {
-  const file = inputEl.files[0];
+<script>
+// ====== COLUMN ALIASES ======
+var COL_ALIASES = {
+  name: ['品名','名称','物料名称','材料名称','产品名称','name','item','product'],
+  spec: ['规格','型号','规格型号','spec','model'],
+  qty: ['用量','数量','产量','qty','quantity','产量(件)','件数'],
+  unitPrice: ['单价','价格','unitPrice','price','rate','单价(¥)'],
+  amount: ['金额','成本','amount','cost','total','总额','总成本']
+};
+
+function colScore(hdr, cand) {
+  var h = hdr.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
+  var c = cand.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g,'');
+  if(h===c) return 100;
+  if(h.indexOf(c)>=0) return 90;
+  if(c.indexOf(h)>=0) return 85;
+  var ml=0;
+  for(var i=0;i<h.length;i++)
+    for(var j=i+1;j<=h.length;j++)
+      if(c.indexOf(h.slice(i,j))>=0) ml=Math.max(ml,j-i);
+  return ml>=2 ? 50+ml*5 : 0;
+}
+
+function smartMap(headers) {
+  var m={};
+  Object.keys(COL_ALIASES).forEach(function(f){
+    var best=-1,bs=50;
+    for(var i=0;i<headers.length;i++){
+      var hdr=String(headers[i]||'').trim();
+      if(!hdr) continue;
+      COL_ALIASES[f].forEach(function(a){
+        var s=colScore(hdr,a);
+        if(s>bs){bs=s;best=i;}
+      });
+    }
+    if(best>=0) m[f]=best;
+  });
+  return m;
+}
+
+// ====== INIT ======
+var DEFAULT_BOM_COUNT=5, DEFAULT_LABOR_COUNT=3, DEFAULT_BATCH_COUNT=3;
+
+function init(){
+  for(var i=0;i<DEFAULT_BOM_COUNT;i++) addBomRow();
+  for(var i=0;i<DEFAULT_LABOR_COUNT;i++) addLaborRow();
+  for(var i=0;i<DEFAULT_BATCH_COUNT;i++) addBatchRow();
+  recalcAll();
+}
+document.addEventListener('DOMContentLoaded', init);
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(t,i){
+    t.classList.toggle('active', (tab==='single'&&i===0)||(tab==='batch'&&i===1));
+  });
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tab-'+tab).classList.add('active');
+  recalcAll();
+}
+
+// ====== SINGLE: BOM ======
+function addBomRow(name,spec,qty,unit,price){
+  name=name||'';spec=spec||'';qty=qty||'';unit=unit||'个';price=price||'';
+  var tb=document.getElementById('bomBody');
+  var r=tb.insertRow();
+  r.innerHTML='<td><input class="name-input" value="'+name+'" placeholder="物料'+(tb.rows.length)+'" onchange="recalcAll()"></td>'
+    +'<td><input value="'+spec+'" style="text-align:left" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+qty+'" step="0.01" min="0" style="width:80px" onchange="recalcAll()"></td>'
+    +'<td><input value="'+unit+'" style="width:60px;text-align:center" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+price+'" step="0.01" min="0" onchange="recalcAll()"></td>'
+    +'<td class="row-total" style="color:#3b82f6">¥0.00</td>'
+    +'<td><button class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove();recalcAll()" style="padding:3px 8px">x</button></td>';
+}
+function addBomRows(n){for(var i=0;i<n;i++) addBomRow();}
+
+function uploadBOM(inputEl){
+  var file=inputEl.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e){
-    try {
-      const wb = XLSX.read(e.target.result, {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      // Clear existing rows
-      document.getElementById('batchBody').innerHTML = '';
-      let added = 0;
-      for(const row of data){
-        if(!row[0] && !row[1] && !row[2]) continue; // skip empty rows
-        const name = String(row[0]||'').trim();
-        const qty = parseFloat(row[1]) || '';
-        const mat = parseFloat(row[2]) || '';
-        const labor = parseFloat(row[3]) || '';
-        const oh = parseFloat(row[4]) || '';
-        if(!name && !qty) continue;
-        addBatchRow(name, qty, mat, labor, oh);
+  showStatus('bomStatus','读取中...');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      if(!raw.length){showStatus('bomStatus','');return;}
+      // Detect: first row may have headers or be data
+      var r0=raw[0];
+      var hasHdr=r0.some(function(c){return isNaN(parseFloat(c))&&String(c).trim().length>0;});
+      var hdrs=hasHdr?r0:r0.map(function(_,i){return 'Col'+i;});
+      var ds=hasHdr?1:0;
+      var m=smartMap(hdrs);
+      var nameCol=m.name, qtyCol=m.qty, priceCol=m.unitPrice;
+
+      document.getElementById('bomBody').innerHTML='';
+      var added=0;
+      for(var r=ds;r<raw.length;r++){
+        var row=raw[r];
+        if(!row.some(function(c){return c!==''&&c!=null&&c!==undefined;})) continue;
+        var n=nameCol!==undefined?String(row[nameCol]||'').trim():'';
+        var q=qtyCol!==undefined?parseFloat(row[qtyCol])||0:0;
+        var p=priceCol!==undefined?parseFloat(row[priceCol])||0:0;
+        if(!n&&!q&&!p) continue;
+        addBomRow(n,'',q,'个',p);
         added++;
       }
-      recalcBatch();
-      const okEl = document.getElementById('batchOk');
-      okEl.textContent = `已加载 ${added} 行`;
-      okEl.classList.remove('hidden');
-      setTimeout(() => okEl.classList.add('hidden'), 4000);
-      inputEl.value = '';
-    } catch(err) {
-      alert('文件读取失败：'+err.message);
-    }
+      if(!added){for(var i=0;i<DEFAULT_BOM_COUNT;i++)addBomRow();}
+      recalcAll();
+      showStatus('bomStatus','已加载 '+added+' 行');
+      inputEl.value='';
+    }catch(err){alert('文件解析失败：'+err.message);showStatus('bomStatus','');}
   };
   reader.readAsArrayBuffer(file);
 }
 
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector(`.tab:nth-child(${tab==='single'?'1':'2'})`).classList.add('active');
-  document.getElementById(`tab-${tab}`).classList.add('active');
+function resetBOM(){
+  document.getElementById('bomBody').innerHTML='';
+  for(var i=0;i<DEFAULT_BOM_COUNT;i++) addBomRow();
+  showStatus('bomStatus','');
+  recalcAll();
 }
 
-// ====== BOM ======
-function addBomRow(name='', spec='', qty='', unit='个', price='') {
-  const tbody = document.getElementById('bomBody');
-  const row = tbody.insertRow();
-  const idx = tbody.rows.length;
-  row.innerHTML = `
-    <td><input class="name-input" value="${name}" placeholder="物料${idx}" onchange="recalcAll()"></td>
-    <td><input value="${spec}" placeholder="如 φ10×100" style="text-align:left" onchange="recalcAll()"></td>
-    <td><input class="qty-input" type="number" value="${qty}" step="0.01" min="0" onchange="recalcAll()"></td>
-    <td><input value="${unit}" style="width:60px;text-align:center" onchange="recalcAll()"></td>
-    <td><input type="number" value="${price}" step="0.01" min="0" onchange="recalcAll()" style="text-align:right"></td>
-    <td class="row-total" style="color:#4299e1">¥0.00</td>
-    <td><button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();recalcAll()">×</button></td>`;
+// ====== SINGLE: LABOR ======
+function addLaborRow(proc,hrs,rate){
+  proc=proc||'';hrs=hrs||'';rate=rate||'';
+  var tb=document.getElementById('laborBody');
+  var r=tb.insertRow();
+  r.innerHTML='<td><input class="name-input" value="'+proc+'" placeholder="工序'+(tb.rows.length+1)+'" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+hrs+'" step="0.1" min="0" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+rate+'" step="0.01" min="0" onchange="recalcAll()"></td>'
+    +'<td class="row-total" style="color:#f59e0b">¥0.00</td>'
+    +'<td><button class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove();recalcAll()" style="padding:3px 8px">x</button></td>';
 }
 
-function addBomRows(n) { for(let i=0;i<n;i++) addBomRow(); }
+// ====== SINGLE: RECALC ======
+function recalcAll(){recalcSingle();recalcBatch();}
 
-// ====== LABOR ======
-function addLaborRow(process='', hours='', rate='') {
-  const tbody = document.getElementById('laborBody');
-  const idx = tbody.rows.length;
-  const row = tbody.insertRow();
-  row.innerHTML = `
-    <td><input class="name-input" value="${process}" placeholder="工序${idx+1}" onchange="recalcAll()"></td>
-    <td><input type="number" value="${hours}" step="0.1" min="0" onchange="recalcAll()"></td>
-    <td><input type="number" value="${rate}" step="0.01" min="0" onchange="recalcAll()"></td>
-    <td class="row-total" style="color:#ed8936">¥0.00</td>
-    <td><button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();recalcAll()">×</button></td>`;
-}
-function addLaborRows(n) { for(let i=0;i<n;i++) addLaborRow(); }
-
-// ====== RECALC ======
-function recalcAll() {
-  recalcSingle();
-  recalcBatch();
-}
-
-function recalcSingle() {
-  // --- BOM ---
-  let bomSum = 0;
-  document.querySelectorAll('#bomBody tr').forEach(row => {
-    const cells = row.querySelectorAll('td');
-    const qty = parseFloat(cells[2].querySelector('input')?.value) || 0;
-    const price = parseFloat(cells[4].querySelector('input')?.value) || 0;
-    const amount = qty * price;
-    cells[5].innerHTML = amount ? `¥${amount.toFixed(2)}` : '¥0.00';
-    cells[5].style.color = amount ? '#4299e1' : '#a0aec0';
-    bomSum += amount;
+function recalcSingle(){
+  var bomSum=0;
+  document.querySelectorAll('#bomBody tr').forEach(function(row){
+    var cs=row.querySelectorAll('td');
+    var q=parseFloat(cs[2].querySelector('input').value)||0;
+    var p=parseFloat(cs[4].querySelector('input').value)||0;
+    var amt=q*p;
+    cs[5].textContent=amt?'¥'+amt.toLocaleString():'¥0.00';
+    cs[5].style.color=amt?'#3b82f6':'#9ca3af';
+    bomSum+=amt;
   });
-  document.getElementById('bomTotal').textContent = `¥${bomSum.toFixed(2)}`;
+  document.getElementById('bomTotal').textContent='¥'+bomSum.toLocaleString();
 
-  // --- Labor ---
-  let laborSum = 0, totalHours = 0;
-  document.querySelectorAll('#laborBody tr').forEach(row => {
-    const cells = row.querySelectorAll('td');
-    const hours = parseFloat(cells[1].querySelector('input')?.value) || 0;
-    const rate = parseFloat(cells[2].querySelector('input')?.value) || 0;
-    const amount = hours * rate;
-    cells[3].innerHTML = amount ? `¥${amount.toFixed(2)}` : '¥0.00';
-    cells[3].style.color = amount ? '#ed8936' : '#a0aec0';
-    laborSum += amount;
-    totalHours += hours;
+  var laborSum=0,totalHrs=0;
+  document.querySelectorAll('#laborBody tr').forEach(function(row){
+    var cs=row.querySelectorAll('td');
+    var h=parseFloat(cs[1].querySelector('input').value)||0;
+    var r=parseFloat(cs[2].querySelector('input').value)||0;
+    var amt=h*r;
+    cs[3].textContent=amt?'¥'+amt.toLocaleString():'¥0.00';
+    cs[3].style.color=amt?'#f59e0b':'#9ca3af';
+    laborSum+=amt;totalHrs+=h;
   });
-  document.getElementById('laborTotal').textContent = `¥${laborSum.toFixed(2)}`;
+  document.getElementById('laborTotal').textContent='¥'+laborSum.toLocaleString();
 
-  // --- OH ---
-  const ohTotal = parseFloat(document.getElementById('ohTotal').value) || 0;
-  const prodQty = Math.max(parseFloat(document.getElementById('prodQty').value) || 1, 1);
-  const method = document.querySelector('input[name="ohMethod"]:checked')?.value || 'labor_hours';
-  let unitOH = 0, allocBase = 0, allocDesc = '';
+  var ohTotal=parseFloat(document.getElementById('ohTotal').value)||0;
+  var prodQty=Math.max(parseFloat(document.getElementById('prodQty').value)||1,1);
+  var method=document.querySelector('input[name="ohMethod"]:checked').value;
+  var unitOH=0;
+  if(method==='manual') unitOH=ohTotal/prodQty;
+  else if(method==='labor_hours') unitOH=totalHrs?(ohTotal/(totalHrs*prodQty))*totalHrs:0;
+  else if(method==='labor_cost') unitOH=laborSum?(ohTotal/(laborSum*prodQty))*laborSum:0;
+  else if(method==='material_cost') unitOH=bomSum?(ohTotal/(bomSum*prodQty))*bomSum:0;
+  document.getElementById('unitOH').textContent='¥'+unitOH.toFixed(2);
+  document.getElementById('ohTotalDisplay').textContent='¥'+unitOH.toFixed(2);
 
-  if (method === 'manual') {
-    unitOH = ohTotal / prodQty;
-    allocDesc = `手动：总额 ÷ 产量 = ${unitOH.toFixed(2)}`;
-  } else if (method === 'labor_hours') {
-    allocBase = totalHours;
-    const ratePerHour = totalHours ? ohTotal / (totalHours * prodQty) : 0;
-    unitOH = totalHours * ratePerHour;
-    allocDesc = `按工时：总费用÷(总工时×产量)×本产品工时 = ${unitOH.toFixed(2)}`;
-  } else if (method === 'labor_cost') {
-    allocBase = laborSum;
-    const ratePerYuan = laborSum ? ohTotal / (laborSum * prodQty) : 0;
-    unitOH = laborSum * ratePerYuan;
-    allocDesc = `按人工成本：总费用÷(总人工×产量)×本产品人工 = ${unitOH.toFixed(2)}`;
-  } else if (method === 'material_cost') {
-    allocBase = bomSum;
-    const ratePerYuan = bomSum ? ohTotal / (bomSum * prodQty) : 0;
-    unitOH = bomSum * ratePerYuan;
-    allocDesc = `按材料成本：总费用÷(总材料×产量)×本产品材料 = ${unitOH.toFixed(2)}`;
-  }
-
-  document.getElementById('unitOH').textContent = `¥${unitOH.toFixed(2)}`;
-  document.getElementById('ohExplain').textContent = allocDesc;
-  document.getElementById('ohTotalDisplay').textContent = `¥${unitOH.toFixed(2)}`;
-
-  // Update OH table
-  const ohBody = document.getElementById('ohBody');
-  ohBody.innerHTML = `
-    <tr>
-      <td>制造费用分配</td>
-      <td>${method==='labor_hours'?totalHours.toFixed(1)+'工时':method==='labor_cost'?'¥'+laborSum.toFixed(2):method==='material_cost'?'¥'+bomSum.toFixed(2):'手动'}</td>
-      <td>${method==='manual'?`¥${(ohTotal/prodQty).toFixed(2)}/件`:'按比例'}</td>
-      <td style="color:#6b46c1;font-weight:600">¥${unitOH.toFixed(2)}</td>
-    </tr>`;
-
-  // --- Summary ---
-  const totalUnit = bomSum + laborSum + unitOH;
-  document.getElementById('singleSummary').innerHTML = `
-    <div class="summary-card highlight">
-      <div class="value">¥${totalUnit.toFixed(2)}</div>
-      <div class="label">单位产品成本</div>
-      <div class="unit">产量 ${prodQty} 件 | 总成本 ¥${(totalUnit*prodQty).toFixed(2)}</div>
-    </div>
-    <div class="summary-card">
-      <div class="value">¥${bomSum.toFixed(2)}</div>
-      <div class="label">直接材料</div>
-      <div class="unit">${bomSum?(bomSum/totalUnit*100).toFixed(1):0}%</div>
-      <div class="cost-breakdown"><div class="mat" style="flex:${bomSum||1}"></div><div class="lab" style="flex:${laborSum||1}"></div><div class="ohv" style="flex:${unitOH||1}"></div></div>
-    </div>
-    <div class="summary-card">
-      <div class="value">¥${laborSum.toFixed(2)}</div>
-      <div class="label">直接人工</div>
-      <div class="unit">${laborSum?(laborSum/totalUnit*100).toFixed(1):0}% | ${totalHours.toFixed(1)}h</div>
-    </div>
-    <div class="summary-card">
-      <div class="value">¥${unitOH.toFixed(2)}</div>
-      <div class="label">制造费用</div>
-      <div class="unit">${unitOH?(unitOH/totalUnit*100).toFixed(1):0}%</div>
-    </div>
-    <div class="summary-card" style="border-left-color:#e53e3e;background:#fff5f5">
-      <div class="value" style="color:#e53e3e">¥${(bomSum+laborSum).toFixed(2)}</div>
-      <div class="label">变动成本（料+工）</div>
-      <div class="unit">贡献毛利参考</div>
-    </div>
-  `;
-
-  return { bomSum, laborSum, unitOH, totalUnit, totalHours };
+  var unitTotal=bomSum+laborSum+unitOH;
+  var pct=unitTotal?1/unitTotal:0;
+  document.getElementById('singleSummary').innerHTML=
+    '<div class="summary-card highlight"><div class="value">¥'+unitTotal.toFixed(2)+'</div><div class="label">单位产品成本</div></div>'
+    +'<div class="summary-card"><div class="value">¥'+bomSum.toFixed(2)+'</div><div class="label">直接材料 ('+(bomSum*pct*100).toFixed(0)+'%)</div><div class="cost-breakdown"><div class="m" style="flex:'+(bomSum||1)+'"></div><div class="l" style="flex:'+(laborSum||1)+'"></div><div class="o" style="flex:'+(unitOH||1)+'"></div></div></div>'
+    +'<div class="summary-card"><div class="value">¥'+laborSum.toFixed(2)+'</div><div class="label">直接人工 ('+(laborSum*pct*100).toFixed(0)+'%)</div></div>'
+    +'<div class="summary-card"><div class="value">¥'+unitOH.toFixed(2)+'</div><div class="label">制造费用 ('+(unitOH*pct*100).toFixed(0)+'%)</div></div>'
+    +'<div class="summary-card" style="border-left-color:#ef4444;background:#fef2f2"><div class="value" style="color:#ef4444">¥'+(bomSum+laborSum).toFixed(2)+'</div><div class="label">变动成本（料+工）</div></div>';
 }
 
 // ====== BATCH ======
-function addBatchRow(name='', qty='', mat='', labor='', oh='') {
-  const tbody = document.getElementById('batchBody');
-  const idx = tbody.rows.length + 1;
-  const row = tbody.insertRow();
-  row.innerHTML = `
-    <td><input class="name-input" value="${name}" placeholder="产品${idx}" onchange="recalcBatch()"></td>
-    <td><input type="number" value="${qty}" step="1" min="1" style="width:80px" onchange="recalcBatch()"></td>
-    <td><input type="number" value="${mat}" step="0.01" min="0" onchange="recalcBatch()"></td>
-    <td><input type="number" value="${labor}" step="0.01" min="0" onchange="recalcBatch()"></td>
-    <td><input type="number" value="${oh}" step="0.01" min="0" onchange="recalcBatch()"></td>
-    <td class="row-total" style="font-weight:700">¥0.00</td>
-    <td class="row-total" style="color:#4299e1">¥0.00</td>
-    <td><button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();recalcBatch()">×</button></td>`;
+function addBatchRow(name,qty,mat,labor,oh){
+  name=name||'';qty=qty===undefined?'':qty;mat=mat===undefined?'':mat;labor=labor===undefined?'':labor;oh=oh===undefined?'':oh;
+  var tb=document.getElementById('batchBody');
+  var r=tb.insertRow();
+  var idx=tb.rows.length;
+  r.innerHTML='<td>'+idx+'</td>'
+    +'<td><input class="name-input" value="'+name+'" placeholder="产品'+idx+'" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+qty+'" min="1" style="width:80px" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+mat+'" step="0.01" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+labor+'" step="0.01" onchange="recalcAll()"></td>'
+    +'<td><input type="number" value="'+oh+'" step="0.01" onchange="recalcAll()"></td>'
+    +'<td class="row-total">¥0.00</td>'
+    +'<td class="row-total" style="color:#3b82f6">¥0.00</td>'
+    +'<td><button class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove();recalcAll()" style="padding:3px 8px">x</button></td>';
 }
-function addBatchRows(n) { for(let i=0;i<n;i++) addBatchRow(); }
+function addBatchRows(n){for(var i=0;i<n;i++) addBatchRow();}
 
-function recalcBatch() {
-  let grandTotal = 0, totalQty = 0;
-  document.querySelectorAll('#batchBody tr').forEach(row => {
-    const cells = row.querySelectorAll('td');
-    const qty = parseFloat(cells[1].querySelector('input')?.value) || 0;
-    const mat = parseFloat(cells[2].querySelector('input')?.value) || 0;
-    const labor = parseFloat(cells[3].querySelector('input')?.value) || 0;
-    const oh = parseFloat(cells[4].querySelector('input')?.value) || 0;
-    const total = mat + labor + oh;
-    const unit = qty > 0 ? total / qty : 0;
-    cells[5].innerHTML = `¥${total.toFixed(2)}`;
-    cells[6].innerHTML = `¥${unit.toFixed(2)}`;
-    grandTotal += total;
-    totalQty += qty;
-  });
-  document.getElementById('batchGrandTotal').textContent = `¥${grandTotal.toFixed(2)}`;
-  document.getElementById('batchTotalQty').textContent = totalQty;
-  document.getElementById('batchAvgCost').textContent = totalQty ? `¥${(grandTotal/totalQty).toFixed(2)}` : '¥0.00';
+function uploadBatch(inputEl){
+  var file=inputEl.files[0];
+  if(!file) return;
+  showStatus('batchStatus','读取中...');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      if(!raw.length){showStatus('batchStatus','');return;}
+      var r0=raw[0];
+      var hasHdr=r0.some(function(c){return isNaN(parseFloat(c))&&String(c).trim().length>0;});
+      var hdrs=hasHdr?r0:r0.map(function(_,i){return 'Col'+i;});
+      var ds=hasHdr?1:0;
+      var m=smartMap(hdrs);
+
+      // Use smart mapping to find columns
+      var nameCol=m.name!==undefined?m.name:m.spec;
+      var qtyCol=m.qty;
+      var matCol=m.amount;
+      var laborCol=m.laborHours;
+      var ohCol=m.laborRate;
+
+      document.getElementById('batchBody').innerHTML='';
+      var added=0;
+      for(var r=ds;r<raw.length;r++){
+        var row=raw[r];
+        if(!row.some(function(c){return c!==''&&c!=null&&c!==undefined;})) continue;
+
+        var n=nameCol!==undefined?String(row[nameCol]||'').trim():'';
+        var q=qtyCol!==undefined?parseFloat(row[qtyCol])||0:0;
+        var mat=0,matchFound=false;
+
+        // Smart material detection: find columns with "材料" or "成本" in header
+        for(var c=0;c<row.length;c++){
+          var hdr=String(hdrs[c]||'').trim();
+          if((colScore(hdr,'材料')>60||colScore(hdr,'成本')>60||colScore(hdr,'金额')>60)&&c!==nameCol&&c!==qtyCol){
+            mat+=parseFloat(row[c])||0;
+            matchFound=true;
+          }
+        }
+        // Fallback: use amount column
+        if(!matchFound&&matCol!==undefined) mat=parseFloat(row[matCol])||0;
+
+        // Smart labor detection
+        var lab=0;
+        for(var c2=0;c2<row.length;c2++){
+          var h2=String(hdrs[c2]||'').trim();
+          if(colScore(h2,'人工')>60||colScore(h2,'工资')>60||colScore(h2,'工时')>60){
+            lab+=parseFloat(row[c2])||0;
+          }
+        }
+
+        // Smart OH detection
+        var o=0;
+        for(var c3=0;c3<row.length;c3++){
+          var h3=String(hdrs[c3]||'').trim();
+          if(colScore(h3,'费用')>60||colScore(h3,'制造')>60||colScore(h3,'间接')>60){
+            o+=parseFloat(row[c3])||0;
+          }
+        }
+
+        if(!n&&!q&&!mat) continue;
+        addBatchRow(n,q,mat,lab,o);
+        added++;
+      }
+      if(!added) addBatchRows(DEFAULT_BATCH_COUNT);
+      recalcAll();
+      showStatus('batchStatus','已加载 '+added+' 行');
+      inputEl.value='';
+    }catch(err){alert('文件解析失败：'+err.message);showStatus('batchStatus','');}
+  };
+  reader.readAsArrayBuffer(file);
 }
 
-function exportBatch() {
-  const results = [];
-  document.querySelectorAll('#batchBody tr').forEach(row => {
-    const cells = row.querySelectorAll('td');
-    results.push({
-      '产品名称': cells[0].querySelector('input')?.value || '',
-      '产量(件)': cells[1].querySelector('input')?.value || '',
-      '直接材料': cells[2].querySelector('input')?.value || '',
-      '直接人工': cells[3].querySelector('input')?.value || '',
-      '制造费用': cells[4].querySelector('input')?.value || '',
-      '总成本': cells[5].textContent,
-      '单位成本': cells[6].textContent,
-    });
+function resetBatch(){
+  document.getElementById('batchBody').innerHTML='';
+  for(var i=0;i<DEFAULT_BATCH_COUNT;i++) addBatchRow();
+  showStatus('batchStatus','');
+  recalcAll();
+}
+
+function recalcBatch(){
+  var gt=0,tq=0;
+  document.querySelectorAll('#batchBody tr').forEach(function(row){
+    var cs=row.querySelectorAll('td');
+    var q=parseFloat(cs[2].querySelector('input').value)||0;
+    var m=parseFloat(cs[3].querySelector('input').value)||0;
+    var l=parseFloat(cs[4].querySelector('input').value)||0;
+    var o=parseFloat(cs[5].querySelector('input').value)||0;
+    var total=m+l+o;
+    var unit=q>0?total/q:0;
+    cs[6].textContent='¥'+total.toLocaleString();
+    cs[7].textContent='¥'+unit.toFixed(2);
+    gt+=total;tq+=q;
   });
-  if(!results.length){alert('无数据');return;}
-  const ws = XLSX.utils.json_to_sheet(results);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '批量成本归集');
-  XLSX.writeFile(wb, `产品成本归集_${new Date().toISOString().slice(0,10)}.xlsx`);
+  document.getElementById('batchGrandTotal').textContent='¥'+gt.toLocaleString();
+  document.getElementById('batchTotalQty').textContent=tq;
+  document.getElementById('batchAvgCost').textContent=tq?'¥'+(gt/tq).toFixed(2):'¥0.00';
+}
+
+function exportBatch(){
+  var rows=document.querySelectorAll('#batchBody tr');
+  if(!rows.length){alert('无数据');return;}
+  var data=[];
+  rows.forEach(function(row,i){
+    var cs=row.querySelectorAll('td');
+    data.push({序号:i+1, 产品名称:cs[1].querySelector('input').value||'', 产量:cs[2].querySelector('input').value||'',
+      直接材料:cs[3].querySelector('input').value||'', 直接人工:cs[4].querySelector('input').value||'',
+      制造费用:cs[5].querySelector('input').value||'', 总成本:cs[6].textContent, 单位成本:cs[7].textContent});
+  });
+  var ws=XLSX.utils.json_to_sheet(data);
+  ws['!cols']=[{wch:5},{wch:16},{wch:8},{wch:12},{wch:12},{wch:12},{wch:14},{wch:14}];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'产品成本归集');
+  XLSX.writeFile(wb,'产品成本归集_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+function showStatus(id,msg){
+  var el=document.getElementById(id);
+  if(el){el.textContent=msg;el.classList.toggle('hidden',!msg);}
 }
 </script>
 </body>
